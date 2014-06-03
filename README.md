@@ -14,26 +14,40 @@ QueryScore
    用户通过学号与教务系统密码，进行登录    
 
 
+
 2. 主界面如下：
    ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/main.jpg)    
+
    
    用户可以根据学号查询成绩，通过左右递增递减学号，查询，同时，下方显示用户学籍信息    
+   
 
-   ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/cal%20and%20filter.jpg)    
+   ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/cal%20and%20filter.jpg)     
+   
 
-   同时，可以根据喜欢，进行课程过滤，仅显示感兴趣课程，并统计平均值。       
+   同时，可以根据喜欢，进行课程过滤，仅显示感兴趣课程，并统计平均值。     
+   
 
-   ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/scoredisplay.jpg)    
+       
+   
+   
 
 3. 高级功能     
-   ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/统计排名.jpg)    
-    
+   ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/统计排名.jpg)      
+   根据用户输入学号的范围，自动查询并统计成绩，然后按照从高到低进行排序
+
+   ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/scoredisplay.jpg)    
+   一个层叠结构，用户可以看到每科的成绩   
 
 
 
 4. 小功能
-   ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/find%20people.jpg)    
+   ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/find%20people.jpg)     
+   找人功能，根据用户输入的学号，查询学籍信息
    
-   ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/mini%20web.jpg)    
+   ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/mini%20web.jpg)        
+   内置web 浏览器，在本地即可获取教务通过信息
 
-   ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/courese.jpg)    
+   ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/courese.jpg)     
+   同时，课程表也抓取到本地，用户可以查看
+   
