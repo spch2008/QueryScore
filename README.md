@@ -10,7 +10,7 @@ QueryScore
 
 
 1. 登录界面如下：
-   ![github](http://github.com/spch2008/QueryScore/blob/master/readme/login.jpg "github")
+   ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/login.jpg)
    用户通过学号与教务系统密码，进行登录
 
 
@@ -26,3 +26,4 @@ QueryScore
 3. 高级功能 
    ![image](https://github.com/spch2008/QueryScore/blob/master/readme/main.jpg)
    
+
