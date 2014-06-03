@@ -17,7 +17,8 @@ QueryScore
 
 
 
-2. 主界面如下：
+2. 主界面如下：    
+
    ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/main.jpg)    
 
    
