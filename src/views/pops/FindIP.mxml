@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="400" height="244" 
+	showCloseButton="true" fontSize="12" title="IP地址查询" creationComplete="initApp()" close="closeWindow()"
+    defaultButton="{query_btn}" borderAlpha="0.8"  borderColor="#BC5C5C">
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.FaultEvent;
+			import mx.managers.PopUpManager;
+			//import mx.controls.Alert;
+			
+			private function initApp():void{
+				ip_txt.setFocus();
+			}
+			private function closeWindow():void{
+				PopUpManager.removePopUp(this);
+			}
+			private function queryHandler():void{
+				var paras:Object = {};
+				//paras.domain= "112.237.211.213";
+				paras.action = "2";
+				paras.ip = ip_txt.text;
+				
+				httpService.send(paras);
+			}
+			private function faultHandler(evt:FaultEvent):void{
+				//Alert.show(evt.message.toString(),"");
+				analyIP(evt.message.toString());
+			}
+			private function analyIP(str:String):void{
+				var i:int = 0;
+				var j:int = 0;
+				
+				i = str.indexOf("本站主数据：",0);
+				j = str.indexOf("</td>",i);
+				if( i == -1){
+					mainData.text = "IP地址错误";
+					dividedData.text = "";
+					return;
+				}
+				var usefulStr:String = str.substring(i,j);
+			
+				mainData.text = usefulStr.substring(6,usefulStr.indexOf("</li>"));
+				i = usefulStr.indexOf("参考数据一：")+6;
+				j = usefulStr.indexOf("</li>",i);
+			    dividedData.text = usefulStr.substring(i,j);
+			}
+		]]>
+	</mx:Script>
+	<mx:TextInput x="54" y="37" id="ip_txt"/>
+	<mx:Button x="222" y="37" label="查询" id="query_btn" click="queryHandler()"/>
+	<mx:Form x="54" y="79">
+		<mx:FormHeading label="查询结果"/>
+		<mx:FormItem label="主站数据：">
+			<mx:TextInput id="mainData" editable="false" borderStyle="none"/>
+		</mx:FormItem>
+		<mx:FormItem label="参考数据：">
+			<mx:TextInput id="dividedData" enabled="true" borderStyle="none" displayAsPassword="false"/>
+		</mx:FormItem>
+	</mx:Form>
+	<mx:HTTPService id="httpService" fault="faultHandler(event)" url="http://www.ip138.com/ips8.asp"/>
+</mx:TitleWindow>

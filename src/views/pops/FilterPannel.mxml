@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"  width="400" height="300" 
+	 fontSize="12" creationComplete="initSelect()" horizontalScrollPolicy="off"
+	 verticalScrollPolicy="off" showCloseButton="true" close="closeWindow()"
+	 defaultButton="{conform_btn}" borderAlpha="0.8"  borderColor="#BC5C5C">
+	
+    <mx:Script>
+    	<![CDATA[
+    		import mx.events.FileEvent;
+    		import mx.collections.ArrayCollection;
+    		import events.FilterEvent;
+    		import mx.managers.PopUpManager;
+    		
+    	    [Bindable]
+    		private var dp:ArrayCollection;
+    		private var selectedLabels:Array = [];
+    		private var initSelectArr:Array;
+    		
+    		public function addData(data:ArrayCollection):void{
+    			dp = data;
+    		}
+    		public function addSelectedData(arr:Array):void{
+    			initSelectArr = arr;
+    		}
+//    		private function getDataHandler(repeaterItem:Object):void{
+    			
+//    		}
+            private function getData():Boolean{
+            	for(var i:int = 0; i < dp.length; i++){
+            		if(checkBoxs[i].selected){
+            			selectedLabels.push(checkBoxs[i].label);
+            		}
+            	}
+            	//用户没有选择，则不进行相应的处理
+            	if(selectedLabels.length == 0){
+            		return false;
+            	}else{
+            		return true;
+            	}
+            	
+            }
+            private function broadCastEvent(arr:Array):void{
+            	var e:FilterEvent = new FilterEvent(FilterEvent.FILTER_DATA, arr);
+            	this.parentApplication.dispatchEvent(e);
+            }
+            private function conformHandler(evt:MouseEvent):void{
+            	if(getData()){
+            		broadCastEvent(selectedLabels);
+            	}
+            	closeWindow();
+            }
+            private function closeWindow():void{
+            	PopUpManager.removePopUp(this);
+            }
+            private function initSelect():void{
+            	if(initSelectArr == null){
+            		return;
+            	}
+            	for(var i:int = 0; i < initSelectArr.length; i++){
+            		for(var j:int = 0; j < dp.length; j++){
+            			if(initSelectArr[i] == checkBoxs[j].label){
+            				checkBoxs[j].selected = true;
+            				break;
+            			}
+            		}
+            	}
+            }
+    	]]>
+    </mx:Script>
+	<mx:Canvas  width="100%" height="100%" horizontalScrollPolicy="off" >
+		<mx:VBox x="10" y="0" height="100%" verticalGap="1">
+	    	<mx:Repeater id="myRepeater" dataProvider="{dp}" height="100%" >
+		<!--             click="getDataHandler(event.target.getRepeaterItem())" />  -->
+		    	<mx:CheckBox id="checkBoxs" label="{myRepeater.currentItem.subjectName}"  x="19" y="51"/>
+	    	</mx:Repeater>
+		</mx:VBox>
+   </mx:Canvas>	
+   <mx:ControlBar>
+	    <mx:Spacer width="100%"/>
+		<mx:Button id="conform_btn" label="确定" click="conformHandler(event)"/>
+	</mx:ControlBar>
+</mx:TitleWindow>

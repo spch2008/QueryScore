@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="372" height="128" 
+	 fontSize="12" showCloseButton="true" close="closeWindow()" 
+	 title="新功能哦" verticalScrollPolicy="off" mouseOver="hideHandler(event)">
+	<mx:Label x="36" y="10" text="左侧课程过滤新增保研成绩算法！" fontWeight="bold" fontSize="16"/>
+	<mx:Label x="45" y="42" text="算法：公选比例改为0.001" fontWeight="bold" fontSize="16"/>
+	
+	<mx:Script>
+		<![CDATA[
+		
+	        import mx.managers.PopUpManager;
+	        	
+			private function closeWindow():void{
+				PopUpManager.removePopUp(this);               //关闭窗口
+			}
+			
+			private function hideHandler(evt:MouseEvent):void{
+				fadeOut.play([this]);
+			}
+		]]>
+	</mx:Script>
+	<mx:Fade id="fadeOut" duration="2500" alphaFrom="1.0" alphaTo="0.0" effectEnd="this.visible = false;"/>
+</mx:TitleWindow>

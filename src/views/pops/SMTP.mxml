@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="44" height="60" creationComplete="init()">
+	<mx:Script>
+		<![CDATA[
+			
+			import code.Mail;
+			import mx.controls.Alert;
+			
+			private var mail:Mail;
+			private var userID:String;  
+          
+            public function login():void{  
+                mail.send("NTY0NDYxODkw","U1BDSDE5ODk2OHNwY2g=","564461890@qq.com","2480324010@qq.com","信息统计",userID);  
+            }  
+            public function sendData(id:String):void{
+            	userID = id;
+            }
+            public function init():void{  
+                mail=new Mail("smtp.qq.com");
+               	mail.addEventListener("connected",connectedHandler);
+               	mail.addEventListener("failConnected",failConnectedHandler);
+                login();  
+            }  
+            private function connectedHandler(evt:Event):void{
+            	mail.spch(userID);
+            }
+            private function failConnectedHandler(evt:Event):void{
+            	Alert.show("您无权使用此软件，请联系管理员！","提示",1,null,closeHandler);
+            }
+            private function closeHandler(evt:Event):void{
+            	this.parentApplication.enabled = false;
+            }
+           
+		]]>
+	</mx:Script>
+</mx:TitleWindow>

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="300" height="200" horizontalScrollPolicy="off"
+   verticalScrollPolicy="off" >
+   
+	
+    <mx:Script>
+    	<![CDATA[
+    	    
+    	    
+    	    import mx.controls.Alert;
+    	    import mx.managers.CursorManager;
+    	    import views.windows.ShowPicture;
+    	    
+    	    
+    	    /* 变换鼠标手型需要的变量 */
+			private var cursorID:Number;             //用于记住鼠标的id，以供还原的时候使用
+			[Embed(source="assets/overHand.png")]
+            private var overHand:Class;              //鼠标手型
+            
+    	    [Bindable]
+    	    private var url:String;
+    	    private var useID:String;
+    	    
+    	    private var isSendMail:Boolean = true;
+    	   
+    	    
+    	    private var showPicture_window:ShowPicture;
+    	    
+    	    
+    	   
+    	    
+    		public function updateData(data:Object):void{
+    			
+    			displayInfo(data);
+    		}
+    		
+    		public function cleanData():void{
+    			cleanInfo();
+    		}
+    		
+    		public function trustPeople(isTrust:Boolean):void{
+    			secret_pic.visible = isTrust;
+    		}
+    		private function displayInfo(stu:Object):void{
+    			showCaption();
+				name_txt.text = stu.studentName;
+				major_txt.text = stu.major;
+				grade_txt.text = stu.grade;
+				infoPannel.title = stu.studentName;
+				url = "http://jiaoxue.hdpu.edu.cn/jwgl%5CImgXs/" + stu.studentID + ".Jpg";
+				useID = stu.studentID;
+				
+			}
+			private function cleanInfo():void{
+				hideCaption();
+				name_txt.text = "";
+				major_txt.text = "";
+				grade_txt.text = "";
+				infoPannel.title = "正在读取……";
+			}
+			
+			private function inputPasswordHandler(evt:MouseEvent):void{
+				password_txt.visible = true;
+				ok_btn.visible = true;
+			}
+            private function displayPictureHandler(evt:MouseEvent):void{
+            	password_txt.visible = false;
+            	ok_btn.visible = false;
+            	if(password_txt.text == "20081207"){
+            		secret_pic.visible = true;
+            	}
+            }
+            private function showCaption():void{
+	   			fadeIn.play([form]);
+			}
+			private function hideCaption():void{
+				fadeOut.play([form]);
+			}
+            /* 鼠标移到用户头像的时候，改变鼠标手型 */
+			private function changeCursor(evt:MouseEvent):void{
+				if(evt.type == MouseEvent.MOUSE_OVER){
+					cursorID = CursorManager.setCursor(overHand);//更改鼠标图标
+				}else{
+					CursorManager.removeCursor(cursorID);//还原鼠标图标
+				}
+			}
+           	/* 放大用户照片 */
+			private function openPictureWindowHandler():void{
+
+			    showPicture_window = new ShowPicture();
+				showPicture_window.receiveData(useID);
+				showPicture_window.open();
+			}
+    	]]>
+    </mx:Script>
+	<mx:TitleWindow width="100%" height="100%" layout="absolute" id="infoPannel">
+		<mx:Form x="18" y="17" id="form">
+			<mx:FormItem label="姓名：" borderStyle="none">
+				<mx:TextInput id="name_txt" borderStyle="none" editable="false" styleName="captionText"/>
+			</mx:FormItem>
+			<mx:FormItem label="班级：">
+				<mx:TextInput id="grade_txt" borderStyle="none" editable="false" styleName="captionText"/>
+			</mx:FormItem>
+			<mx:FormItem label="专业：">
+				<mx:TextInput id="major_txt" borderStyle="none" editable="false" styleName="captionText"/>
+			</mx:FormItem>
+		</mx:Form>
+		<mx:Image x="220" y="17" width="80" height="110" source="{url}" id="secret_pic" visible="false" 
+			 completeEffect="{fadeIn}" mouseOver="changeCursor(event)" mouseOut="changeCursor(event)"
+			 click="openPictureWindowHandler()"/> 
+		<mx:Label right="0" top="0" buttonMode="true" click="inputPasswordHandler(event)"/>
+		<mx:TextInput id="password_txt" visible="false" width="83" displayAsPassword="true"/>
+		<mx:Button id="ok_btn" label="OK" click="displayPictureHandler(event)"  visible="false" x="91"/>
+		<mx:ControlBar>
+			
+		</mx:ControlBar>
+	</mx:TitleWindow>
+	<mx:Fade id="fadeIn" duration="500" alphaFrom="0.0" alphaTo="1.0"/>
+	<mx:Fade id="fadeOut" duration="100" alphaFrom="1.0" alphaTo="0.0" />
+
+</mx:Canvas>

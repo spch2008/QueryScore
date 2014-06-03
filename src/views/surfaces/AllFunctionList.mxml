@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="400" height="300">
+    <mx:Script>
+    	<![CDATA[
+    		import mx.core.IFlexDisplayObject;
+            
+            //import flash.events.MouseEvent;
+            import views.pops.FindIP;
+            import views.pops.FindPerson;
+            import views.pops.FindPhoneNumber;
+            import views.pops.WeatherReport;
+            import mx.managers.PopUpManager;
+               	
+    		[Bindable]
+            [Embed(source="assets/weather.png")]
+            private var weather:Class;
+            
+            [Bindable]
+            [Embed(source="assets/ip.png")]
+            private var ip:Class;
+            
+            [Bindable]
+            [Embed(source="assets/telephone.png")]
+            private var telephone:Class;
+            
+            [Bindable]
+            [Embed(source="assets/search_user.png")]
+            private var search_user:Class;
+            
+            private function clickHandler(evt:MouseEvent):void{
+            	
+            	var win:IFlexDisplayObject;
+            	
+            	if(evt.target == weather_image){
+            		win = new WeatherReport();
+            	}else if(evt.target == ip_image){
+            		win = new FindIP();
+            	}else if(evt.target == telephone_image){
+            		win = new FindPhoneNumber();
+            	}else{
+            		win = new FindPerson();
+            	}
+            	win.x = this.width / 4;
+            	win.y = this.height / 2 - 30;
+            	PopUpManager.addPopUp(win,this,false);
+            }
+            
+            private function mouseOverHandler(evt:MouseEvent):void{
+            	if(evt.target == weather_grid){
+            		weather_image.toolTip = "当日天气查询";
+            	}else if(evt.target == ip_grid){
+            		ip_image.toolTip = "ip地址查询";
+            	}else if(evt.target == telephone_grid){
+            		telephone_image.toolTip = "手机号码归属地查询";
+            	}else if(evt.target == search_user_grid){
+            		search_user_image.toolTip = "找同学";
+            	}
+            }
+            
+    	]]>
+    </mx:Script>
+	<mx:Grid  width="100%" height="100%" fontSize="14">
+		<mx:GridRow width="100%" height="100%">
+			<mx:GridItem width="100%" height="100%" id="weather_grid" buttonMode="true" click="clickHandler(event)" 
+				mouseOver="mouseOverHandler(event)">
+				<mx:Image id="weather_image" source="{weather}"/>
+			</mx:GridItem>
+			<mx:GridItem width="100%" height="100%" id="ip_grid" buttonMode="true" click="clickHandler(event)" 
+				mouseOver="mouseOverHandler(event)">
+				<mx:Image id="ip_image" source="{ip}"/>
+			</mx:GridItem>
+			<mx:GridItem width="100%" height="100%" id="telephone_grid" buttonMode="true" click="clickHandler(event)" 
+				mouseOver="mouseOverHandler(event)">
+				<mx:Image id="telephone_image" source="{telephone}"/>
+			</mx:GridItem>
+			<mx:GridItem width="100%" height="100%" id="search_user_grid" buttonMode="true" click="clickHandler(event)" 
+				mouseOver="mouseOverHandler(event)">
+				<mx:Image id="search_user_image" source="{search_user}"/>
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%" height="100%">
+			<mx:GridItem width="100%" height="100%">
+			</mx:GridItem>
+			<mx:GridItem width="100%" height="100%">
+			</mx:GridItem>
+			<mx:GridItem width="100%" height="100%">
+			</mx:GridItem>
+			<mx:GridItem width="100%" height="100%">
+			</mx:GridItem>
+		</mx:GridRow>
+		<mx:GridRow width="100%" height="100%">
+			<mx:GridItem width="100%" height="100%">
+			</mx:GridItem>
+			<mx:GridItem width="100%" height="100%">
+			</mx:GridItem>
+			<mx:GridItem width="100%" height="100%">
+			</mx:GridItem>
+			<mx:GridItem width="100%" height="100%">
+			</mx:GridItem>
+		</mx:GridRow>
+	</mx:Grid>
+	
+</mx:Canvas>

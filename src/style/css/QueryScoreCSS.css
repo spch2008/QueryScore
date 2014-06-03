@@ -1,0 +1,43 @@
+@charset "utf-8";
+/* CSS Document */
+
+ApplicationControlBar {
+   borderStyle: solid;
+   backgroundAlpha: 0.88;
+   cornerRadius: 6;
+   dropShadowEnabled: true;
+   shadowDistance: 7;
+   shadowDirection: center;
+}
+WindowedApplication {
+ 		font-size:12px;
+ 		font-style: normal;
+ 		font-weight: normal;
+	 }
+ToolTip
+{
+       fontSize: 13px;
+}
+ApplicationControlBar {
+   borderStyle: solid;
+   backgroundAlpha: 0.88;
+   cornerRadius: 6;
+   dropShadowEnabled: true;
+   shadowDistance: 7;
+   shadowDirection: center;
+}
+
+ComboBox {
+   dropdownStyleName: "myComboBoxDropDowns";
+}
+
+.myComboBoxDropDowns {
+   shadowDistance: 4;
+}
+
+
+LinkButton{
+	rollOverColor:	#EA800C;
+	selectionColor:#EA800C;
+	color:#000000;
+}

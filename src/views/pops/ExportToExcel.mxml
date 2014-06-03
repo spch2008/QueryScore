@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="400" height="300" 
+	showCloseButton="true" close="closeWindow()" borderAlpha="0.8"  borderColor="#BC5C5C">
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import com.as3xls.xls.ExcelFile;
+			import com.as3xls.xls.Sheet;
+
+			import flash.events.Event;
+			import flash.filesystem.*;
+			import flash.utils.ByteArray;
+			
+			import valueObjects.Subject; 
+            import mx.controls.Alert;
+            import mx.managers.CursorManager;
+            import mx.managers.PopUpManager;
+            
+            private var dp:ArrayCollection;
+            private var sheet:Sheet;
+            private var mbytes:ByteArray;
+            private var studentName:String = ""; //必须赋值为空
+            private var subject:Object;
+            private var position:int = 1;           //排名
+            private var headContainer:Array = [];
+            
+            private function closeWindow():void{
+            	PopUpManager.removePopUp(this);
+            }
+            
+            public function updateData(data:ArrayCollection):void{
+            	this.dp = data;
+            	sheet = new Sheet();
+            	sheet.resize(200,200);   //定义一个200行，200列的一个表
+            	
+            }
+            //用于创建表头
+            private function createHead( col:int, headText:String):void{
+            	sheet.setCell(0, col, headText);
+            }
+            private function createCell(row:int, col:int, cellName:String):void{
+            	sheet.setCell(row,col,cellName);
+            }
+  			private function exportToExl():void{
+				CursorManager.setBusyCursor();
+				
+    		    //studentName = Subject(dp.getItemAt(0)).studentName;  //初始学生姓名
+    		    studentName = dp.getItemAt(0).studentName;  //初始学生姓名
+    		   
+    		   createHead(0,"名次");
+    		   createHead(1,"姓名");
+    		   createCell(position, 0, position.toString());
+    		   createCell(position, 1, studentName);
+    		  
+    		    for(var i:int = 0; i < dp.length; i++){
+    		    	subject = dp.getItemAt(i);
+    		    	if(studentName == subject.studentName){  //同一个学生的成绩
+    		    		addSubjectToSheet(subject);
+    		    	}else{
+    		    		position++;
+    		    		studentName = subject.studentName;
+    		    		createCell(position, 0, position.toString());
+    		    		createCell(position, 1, studentName);
+    		    		addSubjectToSheet(subject);
+    		    	}
+    		    }
+    		    
+				var excelFile:ExcelFile = new ExcelFile();
+		        //添加创建的表
+				excelFile.sheets.addItem(sheet);
+				
+				mbytes = excelFile.saveToByteArray();
+				var stream:FileStream = new FileStream();
+				var docsDir:File = File.documentsDirectory.resolvePath("loveFX.xls");  //默认保存名
+				
+				try{
+					docsDir.browseForSave("Save AS");
+					docsDir.addEventListener(Event.SELECT,saveDataHandler);
+				}catch(error:Error){
+					//错误处理
+				}
+				
+				CursorManager.removeBusyCursor();
+		}
+		private function addSubjectToSheet(subject:Object):void{
+			var index:int = -1;
+			for each(var prop:Object in headContainer){
+				if(prop.headText == subject.subjectName){
+					index = prop.index;
+					break;
+				}
+			}
+			if(index == -1){  //没有找到
+				index = headContainer.length + 2;
+				var o:Object = {};
+				o.index = index;
+				o.headText = subject.subjectName;
+				headContainer.push(o);
+				createHead(index,subject.subjectName);
+			}
+			
+			createCell(position, index, subject.subjectScore);
+		}
+		private function saveDataHandler(evt:Event):void{
+			var newFile:File = evt.target as File;
+			if(!newFile.exists){
+				var stream:FileStream = new FileStream();
+				stream.open(newFile,FileMode.WRITE);
+				stream.writeBytes(mbytes);
+				stream.close();
+			}
+		}
+    	
+		]]>
+	</mx:Script>
+	<mx:ControlBar>
+		<mx:Button label="导出" click="exportToExl()"/>
+	</mx:ControlBar>
+	
+</mx:TitleWindow>

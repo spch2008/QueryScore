@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="342" height="194"
+	 showCloseButton="true" borderAlpha="0.8"  borderColor="#BC5C5C" creationComplete="initApp()"
+	  close="closeWindow()" fontSize="12" title="当日天气" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import flash.net.URLRequest;
+			import flash.net.URLLoader;
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+			
+			private var request:URLRequest;
+			private var loader:URLLoader;
+			[Bindable]
+			private var ip:String;
+			[Bindable]
+			private var location:String;
+			
+			private function initApp():void{
+				loader = new URLLoader();
+				loader.addEventListener(Event.COMPLETE,resultHandler);
+				getURL();
+			}
+			private function getURL():void{
+				request = new URLRequest("http://fw.qq.com/ipaddress");
+				loader.load(request);
+			}
+			private function resultHandler(evt:Event):void{
+				analyLocation(evt.target.data);
+				
+				
+				var o:Object = {};
+				o.keys = location;
+				httpService.send(o);
+			}
+			private function analyLocation(str:String):void{
+				var i:int = 0;
+				var j:int = 0;
+				i = str.indexOf("\"",0) + 1;
+				j = str.indexOf("\"",i);
+				ip = str.substring(i,j);
+				
+				i = str.lastIndexOf("\"") - 1;
+				j = str.lastIndexOf("\"",i);
+				location = str.substring(j + 1,i);
+				
+			}
+			private function closeWindow():void{
+				PopUpManager.removePopUp(this);
+			}
+			private function searchWeatherHandler(evt:ResultEvent):void{
+				//Alert.show(evt.message.toString(),"");
+			}
+			private function faultHandler(evt:FaultEvent):void{
+				analyWeather(evt.message.toString());
+			}
+			private function analyWeather(str:String):void{
+				var i:int = 0;
+				var j:int = 0;
+				//Alert.show(str,"");
+				i = str.indexOf("<div class=\"weather\">",0);
+				j = str.indexOf("</div>",i);
+				var weatherStr:String = str.substring(i,j);
+				
+				if(weatherStr.indexOf("白天") != -1){
+					i = weatherStr.indexOf("\"temp font_high\">",0) + 17;
+					j = weatherStr.indexOf("</li>",i);
+					temp_day.text = weatherStr.substring(i,j);
+					i = weatherStr.indexOf("\"weather_desc\">",0) + 15;
+					j = weatherStr.indexOf("</li>",i);
+					weather_day.text = weatherStr.substring(i,j);
+					i = weatherStr.indexOf("\"wind\">",i) + 7;
+					j = weatherStr.indexOf("</li>",i);
+					wind_day.text = weatherStr.substring(i,j);
+					
+					i = weatherStr.indexOf("\"temp\">",0) + 7;
+					j = weatherStr.indexOf("</li>",i);
+					temp_night.text = weatherStr.substring(i,j);
+					i = weatherStr.indexOf("\"weather_desc\">",0) + 15;
+					j = weatherStr.indexOf("</li>",i);
+					weather_night.text = weatherStr.substring(i,j);
+					i = weatherStr.indexOf("\"wind\">",i) + 7;
+					j = weatherStr.indexOf("</li>",i);
+					wind_night.text = weatherStr.substring(i,j);
+				}else{
+					i = weatherStr.indexOf("\"tbtemp\">",0) + 9;
+					j = weatherStr.indexOf("</li>",i);
+					temp_night.text = weatherStr.substring(i,j);
+					i = weatherStr.indexOf("\"tbweather_desc\">",0) + 17;
+					j = weatherStr.indexOf("</li>",i);
+					weather_night.text = weatherStr.substring(i,j);
+					i = weatherStr.indexOf("\"tbwind\">",i) + 9;
+					j = weatherStr.indexOf("</li>",i);
+					wind_night.text = weatherStr.substring(i,j);
+				}
+				
+				
+			}
+		]]>
+	</mx:Script>
+	<mx:HTTPService id="httpService" url="http://www.nmc.gov.cn/search_result.php" request="searchWeatherHandler(event)"
+	                fault="faultHandler(event)"/>
+	<mx:HBox height="139" width="302" y="19" x="10" horizontalGap="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<mx:Form>
+			<mx:FormHeading label="白天"/>
+			<mx:FormItem label="气温：">
+			    <mx:TextInput width="80" id="temp_day" editable="false" borderStyle="none"/>
+			</mx:FormItem>
+			<mx:FormItem label="天气：">
+				<mx:TextInput width="80" id="weather_day" editable="false" borderStyle="none"/>
+			</mx:FormItem>
+			<mx:FormItem label="风力：">
+				<mx:TextInput width="80" id="wind_day" editable="false" borderStyle="none"/>
+			</mx:FormItem>
+		</mx:Form>
+		<mx:Form>
+			<mx:FormHeading label="夜晚"/>
+			<mx:FormItem >
+			    <mx:TextInput width="80" id="temp_night" editable="false" borderStyle="none"/>
+			</mx:FormItem>
+			<mx:FormItem >
+				<mx:TextInput width="80" id="weather_night" editable="false" borderStyle="none"/>
+			</mx:FormItem>
+			<mx:FormItem >
+				<mx:TextInput width="80" id="wind_night" editable="false" borderStyle="none"/>
+			</mx:FormItem>
+		</mx:Form>
+	</mx:HBox>
+	<mx:TextInput x="64" y="6" id="location_txt" editable="false" borderStyle="none" text="{location}" width="82"/>
+	<mx:TextInput x="197" y="6" id="ip_txt" borderStyle="none" editable="false" text="{ip}" width="121"/>
+	<mx:Label x="25" y="6" text="城市："/>
+	<mx:Label x="165" y="6" text="IP："/>
+</mx:TitleWindow>

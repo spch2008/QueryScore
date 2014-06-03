@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="400" height="300" creationComplete="initApp()">
+    <mx:Script>
+    	<![CDATA[
+    		import mx.collections.ArrayCollection;
+    		import events.FilterEvent;
+    		import views.pops.FilterPannel;
+    		import mx.managers.PopUpManager;
+    		import mx.controls.Alert;
+    		import mx.collections.SortField;   
+            import mx.collections.Sort;   
+            import mx.collections.ICollectionView;
+            
+    		[Bindable]
+			private var subjects:ArrayCollection;    //课程数组
+    	    
+    	    private var filterDataArr:Array;             //存取要过滤的课程名称
+    		private var subjectsBackUp:ArrayCollection   //备份分数列表，用于过滤的时候使用
+    		private var isFilter:Boolean = false;        //是否要过滤
+    		
+    		private function initApp():void{
+    			this.parentApplication.addEventListener(FilterEvent.FILTER_DATA, filterDataHandler);
+    			filterDataArr = [];
+    		}
+    		public function cleanData():void{
+    			if(subjectsBackUp == null) return;
+    			subjectsBackUp.removeAll();
+    			subjects = null;
+    		}
+    		public function setTitle(title:String):void{
+    			showPannel.title = title;
+    		}
+    		public function updateData(data:ArrayCollection):void{
+    			subjects = data;
+    			subjectsBackUp = subjects;
+    			
+    			calAverage(subjects);                               //计算平均分
+				if(isFilter){
+					filterData();
+				}
+				mySort();
+    		}
+    		/*  计算平均成绩   */
+			private function calAverage(subjects:ArrayCollection):void{
+				var totalCredit:Number = 0;        //学分
+				var totalScore:Number = 0;         //分数
+				var additionScore:Number = 0;   
+				var average:Number = 0;
+				
+				for each(var prop:Object in subjects){
+					if(prop.subjectKind == "任选"){
+						additionScore += 0.003 * Number(prop.subjectCredit) * Number(prop.subjectScore);
+					}else{
+						totalCredit += Number(prop.subjectCredit);
+						totalScore += Number(prop.subjectScore) * Number(prop.subjectCredit);
+					}
+				}
+				//防止出现 0/0的情况
+				if(totalCredit){
+					average = totalScore/totalCredit + additionScore;
+				}else{
+					average = additionScore;
+				}
+				allSubjects_txt.text = average.toFixed(4).toString();
+				publicSubjects_txt.text = additionScore.toFixed(5).toString();
+				
+			}
+			/*   当分数小于60的时候，单元格显示红色   */
+			private function styleFunc(data:Object, col:AdvancedDataGridColumn):Object{
+				if(data["subjectScore"] < 60){
+					return {color:0xFF0000, fontWeight:"bold"};
+				}else{
+					return null;
+				}
+			}
+			
+			/*  点击的是过滤按钮还是停止按钮   */
+			private function filterControlHandler(evt:MouseEvent):void{
+				if(evt.target == startFilter_btn){
+					isFilter = true;
+					var win:FilterPannel = new FilterPannel();
+					//win.title = "过滤";
+					win.x = 230;
+    			    win.y = 100;
+    			    win.addData(subjectsBackUp);
+    			    if(filterDataArr != null){
+    			    	win.addSelectedData(filterDataArr);
+    			    }
+				    PopUpManager.addPopUp(win,this,false);
+				}else{
+					isFilter = false;
+					filterDataArr.length = 0;
+					subjects = subjectsBackUp;
+					
+				}	
+			}
+			/*  接收弹出窗口返回的要过滤的课程信息  */
+			private function filterDataHandler(evt:FilterEvent):void{
+							
+				filterDataArr = evt.filterArr;
+				filterData();
+				
+			}
+			
+			/*   处理数据   */
+			private function filterData():void{
+			//	subjectsBackUp = subjects; //二者共同指向同一块内存
+				subjects = new ArrayCollection();  //重新开辟一个新内存给subjects
+				for(var i:int = 0; i < filterDataArr.length; i++){
+					for(var j:int = 0; j < subjectsBackUp.length; j++){
+						if(filterDataArr[i] == subjectsBackUp.getItemAt(j).subjectName){
+							subjects.addItem(subjectsBackUp.getItemAt(j));
+							break;
+						}
+					}
+				}
+				
+			}
+			
+			    		//按平均分由高到低排序
+			private function mySort():void{
+				try{
+					var dp:ICollectionView = adg1.dataProvider as ICollectionView;   //获取advancedDatagrid中的数据源
+	            	var sort:Sort = new Sort();   
+	            	sort.fields = [new SortField("subjectScore")];                       //通过average这一列进行排序
+	            	dp.sort = sort; 
+	            	dp.sort.reverse();                                              //倒置，默认是从小到大，把它翻转
+	            	dp.refresh();                                                   //改变执行
+	            	
+				}catch(e:Error){}  //若列表为空的时候排序会出错	 
+				
+			}
+			
+    	]]>
+    </mx:Script>
+	<mx:TitleWindow   id="showPannel" right="0" top="0" bottom="0" left="0">
+		<mx:AdvancedDataGrid id="adg1" designViewDataType="flat" dataProvider="{subjects}"  x="5" y="5" height="96%" width="96%"
+		   dragEnabled="true" dragMoveEnabled="true" dragDrop="true" addedEffect="{myDLE}">
+			<mx:columns>
+				<mx:AdvancedDataGridColumn headerText="课程" dataField="subjectName"/>
+				<mx:AdvancedDataGridColumn headerText="分数" dataField="subjectScore" styleFunction="styleFunc"/>
+				<mx:AdvancedDataGridColumn headerText="学分" dataField="subjectCredit"/>
+			</mx:columns>
+		</mx:AdvancedDataGrid>
+		<mx:ControlBar>
+			<mx:Label text="公选：" fontWeight="bold"/>
+			<mx:TextInput width="60" borderStyle="none" editable="false" id="publicSubjects_txt"/>
+			<mx:Label text="总均：" fontWeight="bold"/>
+			<mx:TextInput width="60" borderStyle="none" editable="false" id="allSubjects_txt"/>
+			<mx:Spacer width="100%"/>
+			<mx:Button label="过滤" click="filterControlHandler(event)" id="startFilter_btn" buttonMode="true"/>
+			<mx:Button label="停止" click="filterControlHandler(event)" id="stopFileter_btn" buttonMode="true"/>
+		</mx:ControlBar>
+	</mx:TitleWindow>
+	<mx:DefaultListEffect id="myDLE" fadeOutDuration="1000"/>
+</mx:Canvas>

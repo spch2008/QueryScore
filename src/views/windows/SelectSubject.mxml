@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="820" height="442" fontSize="12"
+   initialize="loadAllSubjects()"  backgroundColor="#914040" horizontalScrollPolicy="off" verticalScrollPolicy="off"
+   showStatusBar="false">
+    
+    <mx:Script>
+    	<![CDATA[
+    		import mx.events.ListEvent;
+    		import mx.collections.ArrayCollection;
+    		import mx.rpc.events.FaultEvent;
+    		import mx.rpc.events.ResultEvent;
+    		
+    		import mx.controls.Alert;
+    		
+    		[Bindable]
+    		private var subjects_dp:ArrayCollection = new ArrayCollection();
+    		[Bindable]
+    		private var info_dp:ArrayCollection = new ArrayCollection();
+    		[Bindable]
+    		private var selectedSubjects_dp:ArrayCollection = new ArrayCollection();
+    		
+    		//private var wantSubject:Object = {};
+    		
+    		private var termID:String = "2010-2011-2";
+    		private var categoryID:String;
+    		
+    		private function loadAllSubjects():void{
+    			categoryLoader.url = "http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/Xsxk/Xk_XsxkLeft_top.asp";
+    			categoryLoader.send();
+    			
+    			//var temp:String = "<td width=\"100%\" valign=\"middle\"><select size=\"1\" name=\"TzdID\" Style=\"width: 300; height: 23\" onchange=\"javascript:showmx();\"><option value=\"\" ></option><option value=\"20102001796\">赵勇生&nbsp;&nbsp;&nbsp;◇&nbsp;&nbsp;资源与环境概论&nbsp;&nbsp;◇&nbsp;科学技术类&nbsp;◇&nbsp;2</option><option value=\"20102001797\">吴楠&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;◇&nbsp;&nbsp;石油地质勘探概论&nbsp;&nbsp;◇&nbsp;科学技术类&nbsp;◇&nbsp;2</option><option value=\"20102001798\">马在平&nbsp;&nbsp;&nbsp;◇&nbsp;&nbsp;旅游地质学&nbsp;&nbsp;◇&nbsp;科学技术类&nbsp;◇&nbsp;2</option><option value=\"20102001802\">徐守余&nbsp;&nbsp;&nbsp;◇&nbsp;&nbsp;自然灾害&nbsp;&nbsp;◇&nbsp;科学技术类&nbsp;◇&nbsp;2</option></select></td>";
+    			//displayAllSubjects(temp);
+    		}
+    		//http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/Xsxk/Xk_XsxkRight_delete.asp?sstrKcxz=0085&isdelete=true
+    		//" + sstrKcxz + "&datetime=2011-3-1 16:16:15&isdelete=true
+    		private function clickOkHandler(evt:MouseEvent):void{
+    			
+    			var url:String = "http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/Xsxk/Xk_XsxkLeft_Buttom_select.asp?selectok=true&Xnxqh="
+    			               + termID + "&TzdID=" + categoryID;
+    			selectLoader.url = url;
+    			selectLoader.send();
+    		}
+    		private function selectHandler(evt:FaultEvent):void{
+    			var data:String = evt.message.toString();
+    			Alert.show(data,"selectHandler");
+    			
+    		}
+    		private function resultHandler(evt:ResultEvent):void{
+    			
+    			var data:String = evt.message.toString();
+    			var i:int = data.indexOf("alert") + 7;
+    			var j:int = data.indexOf("')");
+    			Alert.show(data,"selectHandler");
+    			Alert.show(data.substring(i,j),"提示");
+    		}
+    		private function faultHandler(evt:FaultEvent):void{
+    			//Alert.show(evt.message.toString());
+    			displayAllSubjects(evt.message.toString());
+    		}
+    		
+    		private function displayAllSubjects(data:String):void{
+    			subjects_dp.removeAll();
+    			var i:int = data.indexOf("&Xnxqh") + 7;
+    			var j:int = data.indexOf("&",i);;
+    			var termID:String = data.substring(i,j);
+    			//var i:int;
+    			//var j:int;
+    			 
+    			i = data.indexOf("<option value=\"\" ></option>") + 25;
+    		    j = data.indexOf("</select></td");
+    			var usefulStr:String = data.substring(i,j);
+    			
+    			
+    			var allSubjects_arr:Array;
+    			
+				allSubjects_arr = usefulStr.split("</option>");
+				
+				for(var k:int = 0; k < allSubjects_arr.length; k++){
+					
+					var subject:Object = {};
+					i = String(allSubjects_arr[k]).indexOf("value=\"",0)+7;
+					j = String(allSubjects_arr[k]).indexOf("\">",i);
+					subject.data = String(allSubjects_arr[k]).substring(i,j);
+					
+					i = j + 2;
+					subject.label = String(allSubjects_arr[k]).substr(i);
+					
+					subjects_dp.addItem(subject);
+				}
+    		}
+    		
+    		private function filterSpace(item:Object):String{
+    			var preLabel:String = item.label;
+    			var myPattern:RegExp = /&nbsp;/gi; 
+ 				return preLabel.replace(myPattern, "  "); 
+    		}
+    		
+    		private function changeCategoryHandler(evt:ListEvent):void{
+    			
+    			categoryID = category_cbo.selectedItem.data;
+    			getSubjectInfo(categoryID,termID);
+    		}
+    		private function getSubjectInfo(id:String,term:String):void{
+    			var url:String = "http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/Xsxk/Xk_XsxkLeft_Buttom.asp?Xnxqh="
+    			               + term + "&TzdID=" + id;
+    			subjectLoader.url = url;
+    			subjectLoader.send();
+    		}
+    		private function subjectInfoHandler(evt:FaultEvent):void{
+    			displaySubjectInfo(evt.message.toString())
+    		}
+    		private function displaySubjectInfo(data:String):void{
+    			info_dp.removeAll();
+    			var i:int = data.indexOf("选定");
+    			var j:int = data.indexOf("教师简介",i);
+    			var usefulStr:String = data.substring(i,j);
+    			
+    			
+    			var info_arr:Array = usefulStr.split("</tr>");
+    			
+    			i = String(info_arr[0]).indexOf("<td width=\"93%\">") + 16;
+    			j = String(info_arr[0]).indexOf("</td>",i);
+    			subjectInfo_pan.title = filter(String(info_arr[0]).substring(i,j));
+    			
+    			i = String(info_arr[2]).indexOf("学分")+3;
+    			j = String(info_arr[2]).indexOf("</font>",i);
+    			credit_txt.text = String(info_arr[2]).substring(i,j);
+    			
+    			i = String(info_arr[2]).indexOf("学时",i)+3;
+    			j = String(info_arr[2]).indexOf("</font>",i);
+    			period_txt.text = String(info_arr[2]).substring(i,j);
+    			
+    			i = String(info_arr[2]).indexOf("\"#000080\">",i)+10;
+    			j = String(info_arr[2]).indexOf("</font>",i);
+    			category_txt.text = String(info_arr[2]).substring(i,j);
+    			
+    			i = String(info_arr[info_arr.length-3]).indexOf("align=\"left\">") + 13;
+    			j = String(info_arr[info_arr.length-3]).indexOf("</td>",i);
+    			capacity_txt.text = String(info_arr[info_arr.length-3]).substring(i,j);
+    			
+    			for(var k:int = 4; k < 8; k++ ){
+    				if(String(info_arr[k]).indexOf("剩余容量") != -1){
+    					break;
+    				}
+    				
+    				var o:Object = {};
+    				
+    				i = String(info_arr[k]).indexOf("\"center\">") + 9;
+    				j = String(info_arr[k]).indexOf("</td>",i);
+    				o.time = String(info_arr[k]).substring(i,j);
+    				
+    				i = String(info_arr[k]).indexOf("\"center\">",i) + 9;
+    				j = String(info_arr[k]).indexOf("</td>",i);
+    				o.week = String(info_arr[k]).substring(i,j);
+    				
+    				i = String(info_arr[k]).indexOf("colspan=\"2\">") + 12;
+    				j = String(info_arr[k]).indexOf("</td>",i);
+    				o.location = String(info_arr[k]).substring(i,j);
+    				
+    				info_dp.addItem(o);
+    			}
+    		}
+    		private function filter(data:String):String{
+    			var myPattern:RegExp = /&nbsp;/gi; 
+ 				return data.replace(myPattern, " ");
+    		}
+    		private function refreshHandler(evt:MouseEvent):void{
+    			loadAllSubjects();
+    		}
+    		private function deleteSubjectFaultHandler(evt:FaultEvent):void{
+    			Alert.show(evt.message.toString(),"deleteSubjectFaultHandler");
+    		}
+    		private function deleteSubjectResultHandler(evt:ResultEvent):void{
+    			Alert.show(evt.message.toString(),"deleteSubjectResultHandler");
+    		}
+    		
+    		private function deleteSubjectHandler(evt:MouseEvent):void{
+    			//selectedSubjects_list
+    		}
+    	]]>
+    </mx:Script>
+    
+    <mx:HTTPService id="categoryLoader" result="resultHandler(event)" showBusyCursor="true" 
+		fault="faultHandler(event)" method="POST"/>
+    <mx:HTTPService id="selectLoader" result="resultHandler(event)" showBusyCursor="true" 
+		fault="selectHandler(event)" method="POST"/>
+    <mx:HTTPService id="subjectLoader" result="resultHandler(event)" showBusyCursor="true" 
+		fault="subjectInfoHandler(event)" method="POST"/>
+	<mx:HTTPService id="deleteLoader" result="deleteSubjectResultHandler(event)" showBusyCursor="true" 
+		fault="deleteSubjectFaultHandler(event)" method="POST"/>
+	<mx:Canvas height="420" width="413" borderStyle="solid" y="10" x="10">
+		<mx:ComboBox width="316" height="29" dataProvider="{subjects_dp}" labelFunction="filterSpace" id="category_cbo"
+			change="changeCategoryHandler(event)" x="10" y="13"></mx:ComboBox>
+		<mx:Button label="刷新" click="refreshHandler(event)" x="345" y="14.5"/>
+		<mx:Spacer height="10"/>
+		<mx:Spacer height="10"/>
+		<mx:TitleWindow width="390.95" height="322.6" layout="absolute" id="subjectInfo_pan" x="6" y="77.4">
+			<mx:DataGrid x="11" y="43" height="113" dataProvider="{info_dp}" width="331">
+				<mx:columns>
+					<mx:DataGridColumn headerText="开课时间" dataField="time"/>
+					<mx:DataGridColumn headerText="开课地点" dataField="location"/>
+					<mx:DataGridColumn headerText="开课周次" dataField="week"/>
+				</mx:columns>
+			</mx:DataGrid>
+			<mx:Label x="10" y="10" text="学分："/>
+			<mx:Label x="99" y="10" text="学时："/>
+			<mx:Label x="193" y="10" text="类别："/>
+			<mx:Text x="53" y="10" id="credit_txt"/>
+			<mx:Text x="135" y="10" id="period_txt"/>
+			<mx:Text x="229" y="10" width="113" id="category_txt"/>
+			<mx:Label x="10" y="187" text="剩余容量：" fontSize="14" fontWeight="bold"/>
+			<mx:Text x="91" y="189" id="capacity_txt"/>
+			<mx:ControlBar>
+			    <mx:Spacer width="100%"/>
+				<mx:Button label="选定" click="clickOkHandler(event)" width="69"/>
+			</mx:ControlBar>
+		</mx:TitleWindow>
+	</mx:Canvas>
+	
+	<mx:Canvas x="431" y="10" height="420" width="377.04547" borderStyle="solid">
+		<mx:List x="10" y="10" width="357" height="161" id="selectedSubjects_list" dataProvider="{subjects_dp}"
+		   labelField="label">
+		</mx:List>
+		<mx:Button x="202" y="179" label="删除课程" click="deleteSubjectHandler(event)"/>
+		<mx:Button x="288" y="179" label="查看课表"/>
+		<mx:Panel width="357" height="173" layout="absolute" y="226" x="10">
+			<mx:Label x="10" y="10" text="课程：" width="50"/>
+			<mx:Label x="149" y="10" text="教师：" width="49"/>
+			<mx:TextInput x="54" y="8" width="84"/>
+			<mx:TextInput x="193" y="8" width="80"/>
+			<mx:Button x="280" y="8" label="查询"/>
+			<mx:List x="10" y="40" height="69" width="317"></mx:List>
+		</mx:Panel>
+		
+	</mx:Canvas>
+</mx:Window>

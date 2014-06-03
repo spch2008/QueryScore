@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="200" height="300"
+    type="utility"  windowComplete="initApp()" systemChrome="none" showStatusBar="false" resizable="false"
+    transparent="true" >
+    <mx:Script>
+    	<![CDATA[
+    	    
+    	    import mx.controls.Alert;
+    	    
+    	    [Bindable] 
+    	    private var url:String;
+    	    
+    	    private function initApp():void{
+    	    	//this.x = this.parentApplication.x - 200;
+    	    	//this.y = this.parentApplication.y;
+    	    	
+    	    }
+    	    
+    		public function receiveData(studentID:String):void{
+    			url = "http://jiaoxue.hdpu.edu.cn/jwgl%5CImgXs/" + studentID +".Jpg";
+    			
+    		}
+    	]]>
+    </mx:Script>
+	<mx:Image height="100%" width="100%" source="{url}"/>
+	
+</mx:Window>

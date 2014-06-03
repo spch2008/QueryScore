@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="348" height="254" 
+	showCloseButton="true" fontSize="12" borderAlpha="0.8"  borderColor="#BC5C5C" horizontalScrollPolicy="off"
+	 verticalScrollPolicy="off" creationComplete="initApp()" close="closeWindow()" defaultButton="{query_btn}" title="手机号码归属地查询">
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+			
+			private function queryPhoneNumber():void{
+				var paras:Object = {};
+				//paras.action = "mobile";
+				
+				paras.mobile = phoneNumber.text;
+				paras.job = "search";
+				httpService.send(paras);
+			}
+			private function initApp():void{
+				phoneNumber.setFocus();
+			}
+			private function closeWindow():void{
+				PopUpManager.removePopUp(this);
+			}
+			private function resultHandler(evt:ResultEvent):void{
+				
+			}
+			private function faultHandler(evt:FaultEvent):void{
+				//Alert.show(evt.message.toString(),"");
+				analyString(evt.message.toString());
+			}
+			private function analyString(str:String):void{
+				var i:int = 0;
+				var j:int = 0;
+				i = str.indexOf("查询号码",0);
+				j = str.indexOf("<td>",i);
+				if(str.indexOf("未知号码") != -1){
+					number_txt.text = phoneNumber.text;
+					location_txt.text = "未知号码";
+					zone_txt.text = "";
+					code_txt.text = "";
+					kind_txt.text = "";
+					return;
+				}
+				var usefulStr:String = str.substring(i,j);
+				
+				i = usefulStr.indexOf("查询号码",0) + 5;
+				j = usefulStr.indexOf("<br>",i);
+				number_txt.text = usefulStr.substring(i,j);
+				
+				i = usefulStr.indexOf("所属地区",j) + 5;
+				j = usefulStr.indexOf("<br>",i);
+				location_txt.text = usefulStr.substring(i,j);
+				
+				
+				i = usefulStr.indexOf("电话区号",j) + 5;
+				j = usefulStr.indexOf("<br>",i);
+				zone_txt.text = usefulStr.substring(i,j);
+				
+				i = usefulStr.indexOf("邮政编码",j) + 5;
+				j = usefulStr.indexOf("<br>",i);
+				code_txt.text = usefulStr.substring(i,j);
+				
+				i = usefulStr.indexOf("卡 类 型",j) + 6;
+				j = usefulStr.indexOf("</td>",i);
+				kind_txt.text = usefulStr.substring(i,j);
+			}
+		]]>
+	</mx:Script>
+	<mx:Form x="36" y="39" textAlign="left">
+		<mx:FormItem label="查询号码：">
+			<mx:TextInput id="number_txt" editable="false" borderStyle="none"/>
+		</mx:FormItem>
+		<mx:FormItem label="查询地区：">
+			<mx:TextInput id="location_txt" editable="false" borderStyle="none"/>
+		</mx:FormItem>
+		<mx:FormItem label="电话区号：">
+			<mx:TextInput id="zone_txt" editable="false" borderStyle="none"/>
+		</mx:FormItem>
+		<mx:FormItem label="邮政编码：">
+			<mx:TextInput id="code_txt" editable="false" borderStyle="none"/>
+		</mx:FormItem>
+		<mx:FormItem label="卡类型：">
+			<mx:TextInput id="kind_txt" editable="false" borderStyle="none"/>
+		</mx:FormItem>
+	</mx:Form>
+	<mx:TextInput x="51" y="17" id="phoneNumber"/>
+	<mx:Button x="236" y="16" label="查询" click="queryPhoneNumber()" id="query_btn"/>
+	
+	<mx:HTTPService id="httpService"  url="http://ipseeker.cn/mobile.php" request="resultHandler(event)" method="POST"
+		fault="faultHandler(event)"/>
+</mx:TitleWindow>

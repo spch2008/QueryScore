@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="400" height="300" 
+	showCloseButton="true" close="closeWindow()" borderAlpha="0.8"  borderColor="#BC5C5C" title="spch2008" fontSize="13">
+	<mx:Script>
+		<![CDATA[
+			import mx.managers.PopUpManager;
+			
+			private function closeWindow():void{
+				PopUpManager.removePopUp(this);
+			}
+		]]>
+	</mx:Script>
+	<mx:Label x="10" y="26" text="开发者：石大球球&#xd;&#xa;协助者：大熊 小乔 啊花&#xd;&#xa;开发背景：当前考试体系下，学生越来越关注成绩，&#xd;&#xa;               同时，欲知道班级成绩分布&#xd;&#xa;开发目的：纯属自己娱乐！Just for Fun&#xd;&#xa;使用须知：切勿用于非法目的！&#xd;&#xa;&#xd;&#xa;&#xd;&#xa;&#xd;&#xa;&#xd;&#xa;                                       版权(c) 2010-2011" fontSize="14" height="219" width="360" fontWeight="bold"/>
+	
+</mx:TitleWindow>

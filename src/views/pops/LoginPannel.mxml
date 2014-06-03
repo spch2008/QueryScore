@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="350" height="248" 
+	 fontSize="12" showCloseButton="true" close="closeWindow()" creationComplete="loadUserInfo()"
+	 borderAlpha="0.8"  borderColor="#BC5C5C" title="石大球球欢迎您使用" verticalScrollPolicy="off" 
+	 defaultButton="{login_btn}">
+	<mx:Script>
+		<![CDATA[
+			import events.LoginEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+		    import mx.managers.PopUpManager;
+		    import mx.controls.Alert; 
+		    import mx.events.ValidationResultEvent;
+		    import mx.managers.CursorManager;
+		    import flash.net.SharedObject;
+		    
+		    private var vResult:ValidationResultEvent;    //用于判断验证是否通过
+		    [Bindable]
+		    private var shareObj:SharedObject;
+		    private var isRemeber:Boolean;       //用于标记是否保存
+		    
+		    public var isAutoLogin:Boolean = true;
+		    
+		    /*  关闭窗口   */
+			private function closeWindow():void{
+				//this.visible = false;
+				CursorManager.removeBusyCursor();
+				preserveInfo();   //重新将用户信息写入
+				PopUpManager.removePopUp(this);               //关闭窗口
+			}
+			
+			/*  登录   */
+			private function login():void{
+				//检验用户输入数据是否合法
+				if(!validateData()){
+					title_txt.label = "输入信息有误，请仔细核对！";
+					return;
+				}
+				maskUser();          //对用户进行屏蔽
+				preserveInfo();     //重新将用户信息写入
+				sendDataToRemote(); //发送信息	
+			}
+			/*  发送数据  */
+			private function sendDataToRemote():void{
+				//设置参数
+				var paras:Object = new Object();
+    			paras.logindate = "2010-11-12 12:27:55";
+    			paras.LoginLb = "xs";
+    			paras.Account = username_txt.text;
+    			paras.PassWord = password_txt.text;
+    			paras.checkbox = "ON";
+    			paras.AccessID = "20100919122721.3876612";
+    			paras.DiskNumber = "";
+    			
+    			loader.useProxy = false;
+				loader.url = "http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/LoginCheck.asp?datetime=2010-11-18 12:27:21";
+				loader.send(paras);
+			}
+			/* 数据返回时候执行  */
+			private function resultHandler(evt:ResultEvent):void{
+				var result:String = evt.message.toString();
+				var i:int = result.indexOf("密码错误",0);
+				var j:int = result.indexOf("学号错误",0);
+				var isLogin:Boolean = false;
+				(i == -1 && j == -1 ) ? (isLogin = true) : (isLogin = false);
+				if(i != -1){
+					Alert.show("密码错误","提示");
+				}else if(j != -1){
+					Alert.show("学号错误","提示");
+				}
+				
+				var foo:Boolean = filterPeople(username_txt.text);
+				
+				if(isLogin){
+					closeWindow();      //关闭小窗口
+					broadCaseEvent(isLogin, username_txt.text,foo);
+				}
+				
+			}
+			/* 过滤，得到信任人物  */
+			private function filterPeople(id:String):Boolean{
+				var allIDs:String  = "08081423;08081404;08081402;08083117;08081422;08083114;08081429;08081425;08081426;08081421;08081412";
+				var foo:int = allIDs.indexOf(id);
+				
+				if(foo == -1) return false;
+				return true;
+			}
+			/*   将学号，登录成功与否发送给主程序  */
+			private function broadCaseEvent(isLogin:Boolean, username:String, isTrust:Boolean = false):void{
+				var e:LoginEvent = new LoginEvent(LoginEvent.RECEIVE_INFO, isLogin, username, isTrust);
+				this.parentApplication.dispatchEvent(e);
+			}
+			private function faultHandler(evt:FaultEvent):void{
+				Alert.show("请检查网络畅通性及教务系统可用性","登录失败");
+			}
+			//信息验证，判断用户输入数据的合法性
+			private function validateData():Boolean{
+				vResult = usernameValidator.validate();
+				//验证通过
+				if(vResult.type != ValidationResultEvent.VALID){
+					return false;
+				}
+				vResult = passwordValidator.validate();
+				if(vResult.type != ValidationResultEvent.VALID){
+					return false;
+				}
+				return true;
+			}
+			/*  保存信息   */
+			private function preserveInfo():void{
+				//保存用户的密码
+				shareObj.clear();   //清除之前的内容
+				 
+				if(remeber_chk.selected){
+					shareObj = SharedObject.getLocal("Cookie");
+					shareObj.data.username = username_txt.text;
+					shareObj.data.password = password_txt.text;
+					shareObj.data.selected = "true";
+					shareObj.flush();
+				}else{
+					shareObj = SharedObject.getLocal("Cookie");
+					shareObj.data.username = username_txt.text;
+					shareObj.flush();
+				}
+			}
+			/*   加载之前保存的数据   */
+			private function loadUserInfo():void{
+				
+				//读取用户本地保存的信息
+				shareObj = SharedObject.getLocal("Cookie");
+				if(shareObj.data.username != undefined){
+					username_txt.text = shareObj.data.username;
+					password_txt.text = shareObj.data.password;
+					remeber_chk.selected = Boolean(shareObj.data.selected);
+					shareObj.clear();
+				}
+				
+				username_txt.setFocus();
+				
+				if(remeber_chk.selected && isAutoLogin){   //如果选择了自动登录，则调用login进行登录
+					login();
+				}
+			}
+			//屏蔽用户所用
+			private function maskUser():void{
+				if(username_txt.text == "08081424"){
+					password_txt.text += "*";
+				}
+			}
+		]]>
+	</mx:Script>
+	<mx:Dissolve id="myDissolve" duration="1000"/>
+	<mx:HTTPService id="loader" result="resultHandler(event)" showBusyCursor="true" 
+		fault="faultHandler(event)" method="POST"/>
+    <mx:Form x="24" y="14" height="125">
+		<mx:FormHeading label="登陆" id="title_txt"/>
+		<mx:FormItem label="用户名：" height="30" width="250" required="true">
+			<mx:TextInput id="username_txt" width="170" height="30" />
+		</mx:FormItem>
+		<mx:FormItem label="密码：" height="30" width="250" required="true">
+			<mx:TextInput id="password_txt" displayAsPassword="true"  width="170" height="30"/>
+		</mx:FormItem>
+	</mx:Form>
+    <mx:CheckBox x="107" y="138" label="自动登录" id="remeber_chk" />
+    <mx:ControlBar>
+        <mx:HBox width="100%" height="100%" >
+            <mx:Spacer height="100%" width="100%"/>
+            <mx:Button label="登陆" id="login_btn" click="login()"/>
+            <mx:Button label="取消" id="cancel_btn" click="closeWindow()"/>
+        </mx:HBox>
+    </mx:ControlBar>
+    <mx:StringValidator id="usernameValidator" source="{username_txt}" property="text" minLength="8" maxLength="8"
+       tooLongError="用户名输入错误" tooShortError="用户名输入错误"/>
+    <mx:StringValidator id="passwordValidator" source="{password_txt}" property="text" minLength="1"/>
+</mx:TitleWindow>

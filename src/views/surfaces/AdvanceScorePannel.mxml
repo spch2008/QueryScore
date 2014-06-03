@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="400" height="300" initialize="initApp()">
+    <mx:Script>
+    	<![CDATA[
+    		import mx.events.DropdownEvent;
+    		import valueObjects.Subject;
+    	    import mx.managers.CursorManager;
+    	    import mx.collections.ArrayCollection;
+			import mx.collections.GroupingField;
+			import mx.collections.Grouping;
+			import mx.collections.GroupingCollection;
+			import mx.collections.SummaryField;
+			import mx.collections.SummaryRow;
+			import mx.collections.IViewCursor;
+			import mx.collections.SortField;   
+            import mx.collections.Sort;   
+            import mx.collections.ICollectionView;
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+			
+			import views.pops.ExportToExcel; 
+			
+			private var pos:int = 1;
+			private const ORDINAL_FACTOR:Number = 0.003;          //公选课比例因子
+			private const GRADUTE_FACTOUR:Number = 0.001;        //保研因子
+			private var FACTOR:Number = 0;
+			
+			private var isPreUsed:Boolean = false;
+			private var file:File = File.applicationDirectory;
+			private var filter:FileFilter = new FileFilter("Text","*.txt");
+			private var academicStr:String = "";
+			
+			[Bindable]
+			private var dp:ArrayCollection;              //数据源         
+	        private var allSubjects:Array;               //存放所有的课程
+	        
+	        
+	        
+	        /*注释：有两个数据更新函数，当时是这样考虑的，如果用户不过滤数据
+	         *     则为了简单，方便，高效，对GetDataManager类读取的数据
+	         *     不进行处理，直接显示。但是如果用户指定了过滤条件，则根据
+	         *     过滤条件，由ClassificationManager类处理数据，直接返回
+	         *     ArrayCollection
+	         */
+
+
+
+	        /* 程序数据的初始化  */
+			private function initApp():void{
+				dp = new ArrayCollection();
+				allSubjects = new Array();
+				FACTOR = ORDINAL_FACTOR;
+				
+			}
+			
+			
+			
+	        /*  此函数接收没有经过处理的全部object数据类型 */
+			public function updateArrayData(data:Array):void{
+				//目的：加入读取来每一个学生的课程数组
+				//前置条件:data数组中盛放一个学生的成绩；数据类型是object，每一门课程是一个object
+				//后置条件：将数组数据包装成ArrayCollection
+				
+				//防止出现重复的
+				for each(var prop:Object in allSubjects){
+					if(prop.studentName == data[0].studentName){
+						return;
+					}
+				}
+				
+				//将课程加入加入数组
+				for each(prop in data){
+					allSubjects.push(prop);
+				}
+				
+				dp.source = allSubjects;    //更改dp数据源
+				sortData();                 //处理数据
+			}
+			
+			
+			
+			/*  接收转化成subject类型的数据  */
+			public function updateDataArrayCollection(arrayCollection:ArrayCollection):void{
+				dp = arrayCollection;
+				sortData();	
+			}
+			
+			
+			
+
+			private function fileSelectHandler(evt:Event):void{
+				var stream:FileStream = new FileStream();
+				stream.open(file,FileMode.READ);
+				academicStr = stream.readUTFBytes(stream.bytesAvailable).toString();
+				
+				stream.close();
+				academic_btn.visible = true;
+				
+				dp.filterFunction = filterAcademicFunc;
+				dp.refresh();
+				sortData();	
+			}
+			
+			private function inputAcdemicSubjcts(evt:MouseEvent=null):void{
+				//Alert.show("");
+				file = file.resolvePath("fanxin/");
+				//Alert.show(file.url,"");
+				file.browseForOpen("选择学位课程",[filter]);
+				file.addEventListener(Event.SELECT, fileSelectHandler);
+                //file.addEventListener(Event.CANCEL,fileCancelHandler);
+				
+			}
+			
+			//排序
+			private function sortData():void{
+				pos = 1;
+				groupToTree(dp);                          //对数据进行分类
+                callLater(mySort);                        //下一次重绘时候执行，确保数据更新完毕
+                
+               titleWindow.title = "人数:  " + calPersonTotal().toString();
+                
+			}
+			
+			
+			
+    		//按平均分由高到低排序
+			private function mySort():void{
+				try{
+					var dp:ICollectionView = adg.dataProvider as ICollectionView;   //获取advancedDatagrid中的数据源
+	            	var sort:Sort = new Sort();   
+	            	sort.fields = [new SortField("average")];                       //通过average这一列进行排序
+	            	dp.sort = sort; 
+	            	dp.sort.reverse();                                              //倒置，默认是从小到大，把它翻转
+	            	dp.refresh();                                                   //改变执行
+	   
+				}catch(e:Error){}  //若列表为空的时候排序会出错	 
+				
+			}
+			
+			
+			
+			/*   当分数小于60的时候，单元格显示红色   */
+			private function styleFunc(data:Object, col:AdvancedDataGridColumn):Object{
+				try{
+					if(data["subjectScore"] < 60){
+						return {color:0xFF0000, fontWeight:"bold"};
+					}else{
+						return null;
+					}
+				}catch(e:Event){}
+				return null;
+			}
+			
+			
+			
+			//把给定的数据进行分组,构建树形数据
+			private function groupToTree(data:ArrayCollection):void{
+				
+				
+				var myGroup:GroupingCollection = new GroupingCollection();
+				myGroup.source = data;
+				var group:Grouping = new Grouping();
+				var gf:GroupingField = new GroupingField("studentName");       //按照studentName进行分组
+				group.fields = [gf];
+				myGroup.grouping = group;
+				
+				//多出一列是求平均分
+				var sr:SummaryRow = new SummaryRow();
+				var sf:SummaryField = new SummaryField();
+				sf.summaryFunction = calAverage;
+				sf.label = "average";        //相当于dataField
+				sr.fields = [sf];
+				sr.summaryPlacement = "group";  //放置位置
+			    gf.summaries = [sr];
+				myGroup.refresh();
+				adg.dataProvider = myGroup;    //将数据给advancedDataGride
+				
+				 
+				/*  测试 */
+//				var sr2:SummaryRow = new SummaryRow();
+//				var sf2:SummaryField = new SummaryField();
+//				sf2.summaryFunction = calPosition;
+//				sf2.label = "position";
+//				sr2.fields = [sf2];
+//				sr2.summaryPlacement = "group"; 
+				/* 测试结束  */
+//				gf.summaries = [sr,sr2];
+				
+				
+//				myGroup.refresh();
+//				adg.dataProvider = myGroup;    //将数据给advancedDataGride
+				
+			}
+			
+			
+			
+			//算名次
+			private function calPosition(iterator:IViewCursor, dataField:String, operation:String):Object{
+				return pos++;
+			}
+
+			/* 用于计算名次 */
+			private function lfRowNum(oItem:Object,iCol:int):String
+			{
+				var iIndex:int = this.dp.getItemIndex(oItem) + 1;
+				return String(iIndex);
+			}
+
+			//算平均分
+			private function calAverage(iterator:IViewCursor, dataField:String, operation:String):Object{
+				
+				var addition:Number = 0;                          //公共选修课应加分数
+				var average:Number = 0;                           //必须课程与限选课平均分
+				var totalScore:Number = 0;                        //必须与限选分数总和
+				var totalCredit:Number = 0;                       //必修与限选学分总和
+				
+				//一个循环，每一次循环在datagrid中向下走一行
+				while(!iterator.afterLast)
+				{
+					var value:Number = Number(iterator.current.subjectScore);    //课程分数
+					var kind:String = iterator.current.subjectKind;              //课程类型
+					var credit:Number = Number(iterator.current.subjectCredit);  //课程学分
+					
+					if(kind == "任选"){
+						addition += FACTOR * value * credit;
+					}else{
+						totalScore += value * credit;
+						totalCredit += credit;
+					}
+					
+					iterator.moveNext();    //下移一行
+				}
+				
+				//防止当所有课程都是公选课的时候，出现0/0
+				if(totalScore == 0) average = 0;          
+				else  average = totalScore / totalCredit;
+				
+				return (average + addition).toFixed(6);
+			}
+			
+			
+			
+			/*  导出Excel表格 */
+			private function exportToExcel():void{
+				
+				var win:ExportToExcel = new ExportToExcel();
+				win.x = this.x;
+				win.y = this.y + 40;
+				PopUpManager.addPopUp(win, this, true);
+				win.updateData(dp);
+				
+			}
+			
+			
+			
+			/* 只是清空了当前数据源，不能清空外部数据源 */
+			private function emptyHandler():void{
+				
+				if(dp.length == 0){
+					return;	
+				} 
+				this.dp.removeAll();
+				adg.dataProvider = null;
+				
+				var e:Event = new Event("deleteAll");
+				this.parentApplication.dispatchEvent(e);
+			}
+			
+			
+			
+
+			
+			
+			/* 过滤函数 */
+			private function filterAcademicFunc(value:Object):Object{
+				var foo:String = value.subjectName;
+				if(academicStr.indexOf(foo) == -1) return false;
+				return true;
+			}
+			
+			private function filterGeneralFunc(value:Object):Object{
+				if(value.subjectKind == "任选") return true;
+				return false;
+			}
+			
+			private function filterRequiredFunc(value:Object):Object{
+				if(value.subjectKind == "必修") return true;
+				return false;
+			}
+			
+			private function filterXianXuanFunc(value:Object):Object{
+				if(value.subjectKind == "限选") return true;
+				return false;
+			}
+		//	private function filterGraduateFunc(value:Object):Object{
+		//		return false;
+		//	}
+			
+			
+			
+			
+			//进行过滤前，必需进行数据过滤，以为filterFunction需要
+			private function sortDpByConditon(condt:String = null):void{
+				var sortField:SortField = new SortField(condt);
+				var sort:Sort = new Sort();
+				sort.fields = [sortField];
+				dp.sort = sort;
+				dp.refresh();
+			}
+			
+			//当用户选择课程类型的时候，触发此函数
+			private function changeFilterConditionHandler(evt:DropdownEvent):void{
+				
+				//只需排序一次即可
+				if(!isPreUsed){
+					sortDpByConditon();
+					isPreUsed = true;
+				}
+				if(dp.length == 0){
+					Alert.show("暂无数据，不能显示","提示");
+					return;	
+				} 
+				
+				
+				var index:int = ComboBox(evt.currentTarget).selectedIndex; //用户选择的索引
+				FACTOR = ORDINAL_FACTOR;
+				switch(index){
+					case 0:
+						dp.filterFunction = null;
+						break;
+					case 1:
+						dp.filterFunction = filterAcademicFunc;
+						if(academicStr == ""){
+							
+							inputAcdemicSubjcts();
+							return;
+						}
+						break;
+					case 2:
+						dp.filterFunction = filterGeneralFunc;
+						break;
+					case 3:
+						dp.filterFunction = filterXianXuanFunc;
+						break;
+					case 4:
+						dp.filterFunction = filterRequiredFunc;
+						break;
+					case 5:
+						FACTOR = GRADUTE_FACTOUR;
+						break;
+				}
+				dp.refresh();
+				sortData();	
+			}
+			
+			
+			//计算人数
+			private function calPersonTotal():int{
+				var person_arr:Array = [];
+				person_arr.push(dp.getItemAt(0));
+				
+				for each(var prop:Object in dp){
+					for (var i:int = 0; i < person_arr.length; i++){
+						if(person_arr[i].studentName == prop.studentName){
+							break;
+						}
+					}
+					if( i >= person_arr.length){
+						person_arr.push(prop);
+					}
+				}
+				return person_arr.length;
+			}
+			
+			private function inputSubjectsHandler(evt:MouseEvent):void{
+				if(dp.length == 0){
+					Alert.show("暂无数据，不能显示","提示");
+					return;
+				}
+				inputAcdemicSubjcts();
+			}
+			
+    	]]>
+    </mx:Script>
+    
+	<mx:TitleWindow width="100%" height="100%" layout="absolute" id="titleWindow">
+		   <mx:AdvancedDataGrid x="10" y="10" id="adg" designViewDataType="tree" height="98%"  width="98%" 
+		        defaultLeafIcon="{null}" sortExpertMode="true" bottom="5" top="5" left="5" right="5"
+		        folderClosedIcon="{null}" folderOpenIcon="{null}" fontFamily="Arial">
+			   <mx:columns>
+				   <mx:AdvancedDataGridColumn headerText="科目" dataField="subjectName"/> 
+				   <mx:AdvancedDataGridColumn headerText="分数" dataField="subjectScore" styleFunction="styleFunc"/>
+				   <mx:AdvancedDataGridColumn headerText="学分" dataField="subjectCredit"/>
+				   <mx:AdvancedDataGridColumn headerText="平均分" dataField="average"/>
+				<!--   <mx:AdvancedDataGridColumn headerText="名次" dataField="position" />  --> 
+			   </mx:columns>
+		   </mx:AdvancedDataGrid>
+		   <mx:ControlBar>
+		       <mx:Spacer width="100%"/>
+		       <mx:Button label="输入"  id="academic_btn" visible="true" click="inputSubjectsHandler(event)" 
+		       	toolTip="输入学位课程信息" buttonMode="true"/>
+		       <mx:ComboBox width="96" close="changeFilterConditionHandler(event)">
+		          <mx:dataProvider>
+		            <mx:String>全部课程</mx:String>
+		            <mx:String>学位课程</mx:String>
+		            <mx:String>公选课程</mx:String>
+		            <mx:String>限选课程</mx:String>
+		            <mx:String>必修课程</mx:String>
+		            <mx:String>计通保研</mx:String> 
+		          </mx:dataProvider>
+		       </mx:ComboBox>
+		   	   <mx:Button label="导出" click="exportToExcel()" buttonMode="true"/>
+		   	   <mx:Button label="清空" click="emptyHandler()" buttonMode="true"/>
+		   </mx:ControlBar>
+	   </mx:TitleWindow>
+	   
+	
+</mx:Canvas>

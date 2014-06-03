@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="820" height="610"
+	 title="课程表" windowComplete="initApp()" showStatusBar="false">
+   <mx:Script>
+   	<![CDATA[
+   	    [Bindable]
+   	    private var urlLocation:String = "http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/Xsxk/Xk_XsxkRight_Kb_top.asp?XH=08083117&amp;Datetime=2011-3-6%2021:07:00";
+   	  // private var urlLocation:String = "http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/Xsxk/Xk_XsxkRight.asp";
+   	   // Xk_XsxkRight_Kb.asp?noshowtool=true&
+   		private function initApp():void{
+   			
+   		}
+   		private function showScheduleHandler():void{
+   			
+   		}
+   	]]>
+   </mx:Script>
+   <mx:HTML id="html" width="100%" height="100%" location="{urlLocation}" complete="showScheduleHandler()" >
+		
+   </mx:HTML>	
+</mx:Window>

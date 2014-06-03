@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:v="views.surfaces.*" layout="absolute" width="100%" height="100%"
+	  creationComplete="initApp()"  fontSize="12" backgroundColor="#903737" >
+	<mx:Script>
+		<![CDATA[
+		     //修改：2011.6.20 作者：孙鹏程 
+		     
+			import managers.ClassificationManager;
+			
+			import valueObjects.*;
+			import events.ReceivedDataEvent;
+			import managers.GetDataManager;
+			import common.FanXin;
+			import mx.events.DropdownEvent;
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.managers.CursorManager;
+			import flash.net.SharedObject;
+			import views.pops.DisplayNewFunction;
+			import mx.managers.PopUpManager;
+			
+			private var getDataManager:GetDataManager;
+			private var classificationManager:ClassificationManager;
+			private var studentID:String;
+			private var term:String = "";
+			
+			[Bindable]
+		    private var shareObj:SharedObject;
+
+            [Bindable]
+			private var major_cmb_dp:ArrayCollection;
+			[Bindable]
+			private var class_cmb_dp:ArrayCollection;
+			[Bindable]
+    		private var termArr:ArrayCollection;     //用于给combox提供数据
+			
+			
+			private var selectedMajor:MyMajor;
+			private var selectedClass:MyClass;
+			private var isAddOneStudentMode:Boolean;
+			private var protectedAgainTimes:int = 1;         //当没有取到数据时候，继续重复读取2次，减少因为网络故障而出现的读取失败问题
+			private var protectedSkipPersonNumber:int = 0;
+			
+			private static var userID:String;
+			
+			private var isReadEnd:Boolean = false;
+			private var isFirstUsed:Boolean = false;
+			
+			
+			public function setUserID(ID:String):void{
+					if(ID != null)
+					{
+						var id:String = ID.substr(0,6);
+						userID = id + "01";
+					}
+			}
+			
+			
+			private function initApp():void{
+				
+				displayNewFunction()
+				
+				getDataManager = new GetDataManager();
+				getDataManager.addEventListener(ReceivedDataEvent.RECEIVE_DATA, receiveDataHandler);
+
+                classificationManager = new ClassificationManager();
+                major_cmb_dp = new ArrayCollection();
+                class_cmb_dp = new ArrayCollection();
+                termArr = new ArrayCollection();
+                
+                initSelect();
+				studentID_txt.text = userID;
+				
+				this.parentApplication.addEventListener("deleteAll",deleteAllDataHandler);
+			}
+			private function deleteAllDataHandler(evt:Event):void{
+				classificationManager.removeAllMajor();
+				class_cmb_dp.removeAll();
+				major_cmb_dp.removeAll();
+				comboContainer.visible = false;
+			}
+			
+			/*   列表框初始选择   */
+			private function initSelect():void{
+				 termArr = new ArrayCollection(
+    	         [{label:"大一上",data:1}, 
+                  {label:"大一下", data:2},  
+                  {label:"大二上", data:3},
+                  {label:"大二下",data:4},
+                  {label:"大三上",data:5}, 
+                  {label:"大三下", data:6}, 
+                  {label:"大四上", data:7},
+                  {label:"大四下",data:8},
+                  {label:"大一学年", data:9},
+                  {label:"大二学年", data:10},
+                  {label:"大三学年", data:11},
+                  {label:"大四学年", data:12},
+                  {label:"全部成绩",data:13}
+                  ]);
+				  termSelected_cbo.selectedIndex = 13; //初始选择为大三下
+			}
+			
+			/*  给专业列表框提供数据  */
+			private function updateMajorCombData():void{
+				 
+				if(major_cmb_dp.length == 0){      //如果是首次，则选择  “全部标签”
+					major_cmb_dp.source = classificationManager.majorContainer;
+			        major_cmb.selectedIndex = 0;    //初始选择 “全部” 标签
+				}else{
+					major_cmb_dp.source = classificationManager.majorContainer;
+				}
+				                                
+			}
+			
+			 /*   初始化班级列表框 */
+            private function updateClassCombData(currMajor:MyMajor):void{
+            	
+            	class_cmb_dp = selectedMajor.classContainer;      //搜到班级
+            	//如果之前选择了专业，则不必改变现选班级，否则初始
+            	if(currMajor.majorName == "全部"){
+            		class_cmb.selectedIndex = 0;                      //初始选择 “全部” 标签
+            	} 
+            }
+			
+			/* 根据返回的数据创建学生实体  */
+			private function buildStudent(stu:Object, subjectArr:Array):Student{
+				 return Student.buildInstance(stu, subjectArr);
+			}
+			
+			/*  获取数据返回的数据   */
+			private function receiveDataHandler(evt:ReceivedDataEvent):void{
+				
+				CursorManager.removeBusyCursor();
+				
+				manageGetData(evt.student, evt.subjects);
+				
+				if(isReadEnd == false){
+					getData(term,studentID);                          //进行下一轮的数据处理
+				}
+				
+			}
+			private function manageGetData(stu:Object ,arr:Array):void{
+				
+				if(stu.studentName == "无信息"){
+					
+					//重新读取刚才失败的数据
+					if(protectedAgainTimes < 3){
+						protectedAgainTimes++;
+						this.isReadEnd = false;                    
+						return;
+					//}else if(againTimes >= 3 && int(studentID.substr(6,2)) < 30){
+					}else if(protectedAgainTimes >= 3 && protectedSkipPersonNumber <= 2){
+						protectedSkipPersonNumber++;
+						studentID = FanXin.increaseID(studentID);         //处理id
+						this.isReadEnd = false;
+						protectedAgainTimes = 0;
+						return;
+					}
+					
+					this.isReadEnd = true;
+					
+					protectedAgainTimes = 0;
+					protectedSkipPersonNumber = 0;
+					controlPannel.title = "读取完毕";
+					comboContainer.visible = true;
+					CursorManager.removeBusyCursor();
+					
+				    updateMajorCombData();                              //更新专业选择列表框
+				    
+				    
+				}else{
+					var student:Student = buildStudent(stu, arr);     //创建学生
+				    classificationManager.addStudent(student);        //将学生加入对应的班级
+				    showScorePannel.updateArrayData(arr); 
+				     
+				    if(isAddOneStudentMode){
+				    	isAddOneStudentMode = false;
+				    	return;
+				    } 
+				    
+	                studentID = FanXin.increaseID(studentID);         //处理id
+	                this.isReadEnd = false;
+								
+					controlPannel.title = "正在读取"+studentID+",请稍后……";
+	                
+	                protectedAgainTimes = 0;
+	                protectedSkipPersonNumber = 0;
+	                
+				}
+			}
+			//实际获取信息函数
+			private function getData(term:String, studentID:String):void{
+				CursorManager.setBusyCursor();
+				getDataManager.getData(term,studentID);
+			}
+			//点击开始按钮，开始获取信息
+			private function startGetDataHandler(evt:MouseEvent):void{
+				CursorManager.setBusyCursor();
+				
+				this.studentID = studentID_txt.text;
+
+				getData(this.term, this.studentID);
+				
+			}
+			
+			/*    当专业选择的时候 */
+            private function majorSelectedHandler(evt:DropdownEvent):void{
+            	try{
+            		//var selectedMajorStr:String = evt.target.selectedItem.majorName;
+            	    //selectedMajor = classificationManager.getMajorByName(selectedMajorStr);  //得到选择的专业
+            	    selectedMajor = evt.target.selectedItem as MyMajor;
+            	}catch(e:Error){
+            		return;	
+            	}
+            	
+            	updateClassCombData(selectedMajor);  // 根据选择的专业，更新班级列表框
+            }
+             /*   班级选择后响应  */
+            private function classSelectedHandler(evt:DropdownEvent):void{
+            	try{
+            		//var selectedClassStr:String = evt.target.selectedItem.className;  //得到用户选择的班级
+            	    //selectedClass = selectedMajor.getClassByName(selectedClassStr);
+            	    selectedClass = evt.target.selectedItem as MyClass;
+            	}catch(e:Error){ return;}
+            	
+            	updateClassData(selectedClass);                                     //根据用户的选择更新数据显示
+            }
+                      
+            /*  根据用户选择的专业班级， 进行筛选数据  */
+            private function updateClassData(currClass:MyClass):void{
+            	if(currClass == null) return;
+            	var data:ArrayCollection = new ArrayCollection();
+            	
+            	if(currClass.className == "全部"){
+            		//将专业中所有的课程数据加入data
+            		for each (var myClass:MyClass in selectedMajor.classContainer)
+            			for each (var stu:Student in myClass.studentContainer)
+            				for each (var subj:Subject in stu.subjectContainer)
+            			   		data.addItem(subj);	
+            	} else {
+            		//取出特定班级中的学生的课程
+            		var studentContainer:ArrayCollection = currClass.studentContainer;
+            		for each (stu in studentContainer)
+            			for each (subj in stu.subjectContainer)
+            			   data.addItem(subj);	
+            	}
+            	
+            	showScorePannel.updateDataArrayCollection(data);        //更新列表
+            }
+            
+            private function addFunctionHandler(evt:MouseEvent):void{
+            	if(evt.target.label == "增加班级"){
+            		Alert.show("直接更改1号学号，点击统计即可","提示");
+            	}else{
+            		addStudentContainer.visible = true;   //出现增加学生输入框
+            	}
+            }
+            private function addOneStudentScore(stu:Object ,arr:Array):void{
+            	
+            	var student:Student = buildStudent(stu, arr);     //创建学生
+				classificationManager.addStudent(student);        //将学生加入对应的班级
+				updateClassData(selectedClass);
+				
+            }
+            //单击ok ，获取一个学生成绩的时候调用
+            private function getOneStudentScoreHandler(evt:MouseEvent):void{
+            	addStudentContainer.visible=false;
+            	if(addStudentID_txt.length == 0){
+            		return;
+            	}
+            	isAddOneStudentMode= true;
+            	//Alert.show(term_txt.text,addStudentID_txt.text);
+            	getData(term,addStudentID_txt.text);
+            }
+            
+            /*  选择学期响应函数  */
+			private function selectTermHandler(evt:DropdownEvent):void{
+
+				var termIndex:int = termSelected_cbo.selectedItem.data;
+				
+				var currTerm:String = "";
+				if(termIndex <= 8){
+					currTerm = FanXin.generateTerm(studentID_txt.text.substring(0,2), termIndex);
+				}else if(termIndex <= 12){
+					if(termIndex == 9){
+						termIndex = 1;
+					}else if(termIndex == 10){
+						termIndex = 3;
+					}else if(termIndex == 11){
+						termIndex = 5;
+					}else if(termIndex == 12){
+						termIndex = 7;
+					}
+					currTerm = FanXin.generateTerm(studentID_txt.text.substring(0,2), termIndex);
+					currTerm = currTerm.substring(0,10);
+				}
+				this.term = currTerm;
+			}
+			
+			
+			//初次使用，展示新功能
+			private function displayNewFunction():void{
+				
+				shareObj = SharedObject.getLocal("ISFIRSTUSEME");
+				if(shareObj.data.first == undefined){
+					var win:DisplayNewFunction = new DisplayNewFunction();
+    				win.x = 420;
+    				win.y = 330;
+    				PopUpManager.addPopUp(win,this,false);
+					
+					shareObj.clear();
+					shareObj.data.first = "true";
+					shareObj.flush();
+				}
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:HDividedBox  width="100%" height="100%" top="20" left="10" right="10" bottom="10" horizontalScrollPolicy="off"
+	    verticalScrollPolicy="off">
+	   <v:AdvanceScorePannel id="showScorePannel" height="98%" fontFamily="Times New Roman">
+	   </v:AdvanceScorePannel> 
+<!--	   <mx:VDividedBox height="209">  -->
+	       <mx:TitleWindow width="406" height="214" layout="absolute" id="controlPannel" verticalScrollPolicy="off"
+	       	   horizontalScrollPolicy="off" defaultButton="{tongji_btn}">
+		   <mx:Form x="24" y="2" width="247" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+			   <mx:FormHeading label="以班级为单位统计"/>
+			   <mx:FormItem label="1号学号：">
+				   <mx:TextInput id="studentID_txt" width="140"  color="#050505"/>
+			   </mx:FormItem>
+			   <mx:FormItem label="学期：">
+			   	<mx:ComboBox width="142" id="termSelected_cbo" dataProvider="{termArr}"
+			   		close="selectTermHandler(event)" labelField="label" fontFamily="Times New Roman"></mx:ComboBox>
+			   </mx:FormItem>
+		    </mx:Form>
+		    <mx:TextInput x="10" y="104" visible="false" id="hiden_txt" text="{studentID_txt}" width="224"/>
+		    <mx:HBox x="39" y="108" width="262" height="28" id="comboContainer" visible="false">
+		        <mx:ComboBox x="24" y="106" width="147" id="major_cmb" dataProvider="{major_cmb_dp}" 
+		              close="majorSelectedHandler(event)" labelField="majorName"></mx:ComboBox>
+		        <mx:ComboBox x="163" y="106" width="101" id="class_cmb" dataProvider="{class_cmb_dp}"
+		              close="classSelectedHandler(event)" labelField="className"></mx:ComboBox>
+		    </mx:HBox>
+		    <mx:LinkButton x="261" y="42" label="增加学生" click="addFunctionHandler(event)"/>
+		    <mx:LinkButton x="261" y="74" label="增加班级" click="addFunctionHandler(event)"/>
+		    <mx:ControlBar>
+		        <mx:HBox width="262" height="25" id="addStudentContainer" visible="false">
+		        	<mx:Label text="学号：" fontWeight="bold"/>
+		        	<mx:TextInput width="139" id="addStudentID_txt"/>
+		        	<mx:Button label="OK" click="getOneStudentScoreHandler(event)"/>
+		        </mx:HBox>
+		        <mx:Spacer width="100%"/>
+			    <mx:Button label="统计" click="startGetDataHandler(event),isReadEnd = false" buttonMode="true" id="tongji_btn"/>
+		    </mx:ControlBar>   
+		    
+	    	</mx:TitleWindow>
+	    	
+<!--	   </mx:VDividedBox> -->
+	</mx:HDividedBox>
+	
+</mx:Module>

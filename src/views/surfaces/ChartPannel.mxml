@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="400" height="300">
+	<mx:LineChart x="19.5" y="22" id="linechart1" width="341" height="228">
+		<mx:series>
+			<mx:LineSeries displayName="Series 1" yField=""/>
+		</mx:series>
+	</mx:LineChart>
+	<mx:Legend dataProvider="{linechart1}" x="10" y="10"/>
+</mx:TitleWindow>

@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="408" height="234" 
+	 creationComplete="initApp()" showCloseButton="true" close="closeWindow()" fontSize="12" horizontalScrollPolicy="off"
+	  borderAlpha="0.8"  borderColor="#BC5C5C" title="众里寻他千百度"  creationCompleteEffect="{moveLeftShow}"
+      showEffect="{moveLeftShow}" hideEffect="{moveRightHide}" defaultButton="{findBtn}">
+	<mx:Script>
+		<![CDATA[
+			import mx.events.EffectEvent;
+			import mx.events.DropdownEvent;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.managers.PopUpManager;
+			import mx.controls.Alert;
+			import mx.effects.Effect;
+			import mx.core.UIComponent;
+			
+		    //所选的专业和学院	
+			private var selectedDepartment:String = "";
+			private var selectedMajor:String = "";
+			
+			//另个combobox数据提供
+			[Bindable]
+			private var department_dp:ArrayCollection;
+			[Bindable]
+			private var major_dp:ArrayCollection;
+			
+			//数据初始
+			private function initApp():void{
+				//this.visible = true;
+			    department_dp = new ArrayCollection();
+				major_dp = new ArrayCollection();
+				
+				var array:Array = [{label:"全部",data:""},{label:"地球资源与信息学院",data:"00002"},
+				                   {label:"石油工程学院",data:"00003"},{label:"化学化工学院",data:"00004"},
+				                   {label:"机电工程学院",data:"00005"},{label:"信息与控制工程学院",data:"00006"},
+				                   {label:"经济管理学院",data:"00007"},{label:"数学与计算科学学院",data:"00008"},
+				                   {label:"计算机与通信工程学院",data:"00009"},{label:"人文社会科学学院",data:"00010"},
+				                   {label:"体育教学部",data:"00011"},{label:"外国语学院",data:"00012"},
+				                   {label:"储运与建筑工程学院",data:"00013"},{label:"物理科学与技术学院",data:"00014"},
+				                   {label:"其它",data:"00015"},{label:"应用技术学院",data:"00017"},
+				                   {label:"国际合作与交流处",data:"00018"}];
+				department_dp.source = array;
+				//专业选择combox数据
+				var o:Object = {label:"全部",data:""};
+				major_dp.addItem(o);
+			}
+	
+		
+			private function resultHandler(evt:ResultEvent):void{
+				//一直弄不明白为什么返回的是faultHandler
+			}
+			//对返回的数据进行处理
+			private function faultHandler(evt:FaultEvent):void{
+		        var str:String = evt.message.toString();
+		        var usefulInfo:String = "";
+				var i:int = 0;
+				var j:int = 0;
+				
+				if(loader.url == "http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/GGTZ/Oa_MsgAdd_XzJsr.asp"){
+					
+					
+					var major_arr:Array = [];
+					i = str.indexOf("size=\"1\">",0);
+					j = str.indexOf("</select>",i);
+					usefulInfo = str.substring(i,j);
+					while( i != -1){
+						var obj:Object = {};
+						//截取专业所代表的数据
+						i = usefulInfo.indexOf("value=\"",0)+7;
+						j = usefulInfo.indexOf("\"",i);
+						obj.data = usefulInfo.substring(i,j);
+						//截取专业的名称
+						i = usefulInfo.indexOf("]",j) + 1;
+						j = usefulInfo.indexOf("<",i);
+						obj.label = usefulInfo.substring(i,j);
+					    //存放截取的数据
+						major_arr.push(obj);
+						
+						usefulInfo = usefulInfo.substr(j+10);
+						i = usefulInfo.indexOf("value=\"",0);  //用于下一个轮回
+					}
+					
+         			major_dp.removeAll();          //清除之前数据
+					major_dp.source = major_arr;   //构建新数据
+					//给列表框加一个全部的选项
+					var o:Object = {label:"全部",data:""};
+					major_dp.addItemAt(o,0);
+					findMajor_comb.selectedIndex = 0;
+					
+				}else{
+					 //截取有用的那一断数据
+					 i = str.indexOf("multiple>",0);
+					 j = str.indexOf("</select></td>",i);
+					 usefulInfo = str.substring(i+9,j);
+					 //循环读取名字
+					 while(i != -1){
+					 	i = usefulInfo.indexOf("\">",0);
+					    j = usefulInfo.indexOf("</",i);
+					    
+					    addPersonToList(usefulInfo.substring(i+2,j));
+					    
+					    usefulInfo = usefulInfo.substr(j);
+					    i = usefulInfo.indexOf("\">",0);        //用于下一个轮回
+					 }
+				}
+				
+			}
+			private function addPersonToList(person:String):void{
+				if(person == " "){
+					personList_area.text = "无此人信息";
+					return;
+				}
+				personList_area.text += person + "\n";
+			}
+			private function cleanPersonList():void{
+				personList_area.text = "";
+			}
+			private function closeWindow():void{
+				this.visible = false;
+				//PopUpManager.removePopUp(this);
+			}
+			private function getMajorCombData(evt:DropdownEvent):void{
+				selectedDepartment = evt.target.selectedItem.data;
+				getMajorDataFromRPC(selectedDepartment);
+			}
+			private function getMajorDataFromRPC(data:String):void{
+				if(data == ""){
+					major_dp.removeAll();
+					var o:Object = {label:"全部",data:""};
+					major_dp.addItem(o);
+					return;	
+				} 
+				
+				var paras:Object = {};
+				paras.JsrFw =  "学生";
+				paras.findYxbh = data;
+    			loader.useProxy = false;
+				loader.url = "http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/GGTZ/Oa_MsgAdd_XzJsr.asp";
+				loader.send(paras);
+					
+			}
+			private function findPerson():void{
+				cleanPersonList();
+				
+				if(findName_txt.text.length == 0){   //防止用户不填写，默认超找全部信息，导致程序卡死
+					return;
+				}
+				
+                var paras:Object = {};
+    			paras.JsrFw =  "学生";
+				paras.findYxbh =  selectedDepartment;
+    			paras.findZybh = selectedMajor;
+    			paras.findJsrBh = findName_txt.text;
+                
+				loader.useProxy = false;
+				loader.url = "http://jiaoxue.hdpu.edu.cn/jwgl/jwxs/GGTZ/Oa_MsgAdd_XzJsr.asp?ReadData=OK";
+				loader.send(paras);
+			}
+			
+			private function myEasingFunction(t:Number, b:Number,
+				c:Number, d:Number):Number {
+				if ((t /= d) < (1 / 2.75)) {
+					return c * (7.5625 * t * t) + b;
+				}
+				else if (t < (2 / 2.75)) {
+					return c * (7.5625 * (t-=(1.5/2.75)) * t + .75) + b;
+				}
+				else if (t < (2.5 / 2.75)) {
+					return c * (7.5625 * (t-=(2.25/2.75)) * t + .9375) + b;
+				}
+				else {
+					return c * (7.5625 * (t-=(2.625/2.75)) * t + .984375) + b;
+				}
+			}
+			
+			private function effectEndHandler(evt:EffectEvent):void{
+				PopUpManager.removePopUp(this);
+			}
+		]]>
+	</mx:Script>
+	<mx:HTTPService id="loader" result="resultHandler(event)" showBusyCursor="true" 
+		fault="faultHandler(event)" method="POST"/>
+	<mx:Form x="5" y="10">
+		<mx:FormItem label="学院：" width="230">
+			<mx:ComboBox id="findDepartment_comb" close="getMajorCombData(event)" dataProvider="{department_dp}" width="180"></mx:ComboBox>
+		</mx:FormItem>
+		<mx:FormItem label="专业:" width="230">
+			<mx:ComboBox id="findMajor_comb" close="selectedMajor = findMajor_comb.selectedItem.data" 
+				         width="180" dataProvider="{major_dp}"></mx:ComboBox>
+		</mx:FormItem>
+		<mx:FormItem label="姓名：" required="true">
+			<mx:TextInput id="findName_txt" width="180"/>
+		</mx:FormItem>
+	</mx:Form>
+	<mx:TextArea x="254" y="10" width="131" height="116" id="personList_area"/>
+	<mx:ControlBar>
+	    <mx:Spacer width="100%"/>
+		<mx:Button label="查找" click="findPerson()" id="findBtn"/>
+	</mx:ControlBar>
+	<mx:WipeLeft id="SlowWipe" duration="800"/>
+	
+	<mx:Move id="moveLeftShow" xFrom="600" yFrom="400" xTo="20" yTo="65" duration="1500" easingFunction="myEasingFunction" />
+	<mx:Move id="moveRightHide" xFrom="{this.x}" yFrom="{this.y}"  xTo="1600" duration="2500" easingFunction="myEasingFunction" effectEnd="effectEndHandler(event)"/>
+</mx:TitleWindow>

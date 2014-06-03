@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:v="views.surfaces.*" layout="absolute" 
+	creationComplete="initApp()" width="847" height="500"  fontSize="12" backgroundGradientAlphas="[1.0, 0.9]" 
+	backgroundGradientColors="[#914040, #A63D3D]" showStatusBar="false" closing="closeWindowHandler()">
+	
+	<!-- 此状态的作用：当点击“功能”时候，清理空屏幕，加上功能列表 -->
+	<mx:states>   
+		<mx:State name="AllFunctions">
+			<mx:SetProperty target="{InfoPannel}" name="visible" value="false"/>
+			
+			<mx:SetProperty target="{termAndIdPannel}" name="visible" value="false"/>
+			
+			<mx:SetProperty target="{scorePannel}" name="visible" value="false"/>
+			<mx:AddChild position="lastChild">
+				<v:AllFunctionList right="20" bottom="30" left="20" top="40">
+				</v:AllFunctionList>
+			</mx:AddChild>   
+			 
+		</mx:State>     
+	</mx:states>
+	
+	<!-- 代码嵌入区 -->
+	<mx:Script>
+		<![CDATA[
+			
+			import mx.collections.ArrayCollection;
+			import mx.managers.PopUpManager;
+		    import mx.controls.Alert;
+		    import mx.styles.StyleManager;
+		    
+		    import managers.GetDataManager;
+		    import events.*;
+		    import views.pops.*;
+		    import modules.*;
+		    import views.windows.*;
+		    
+		    //模块所需要的包
+		    import mx.modules.ModuleManager;
+    		import mx.modules.IModuleInfo;
+    		import mx.events.ModuleEvent;
+    		import mx.managers.CursorManager;
+    		
+			private var getData:GetDataManager;      //数据管理，用户获取数据
+			private var asModuleInfo:IModuleInfo;    //管理加载模块
+			private var displayObject:DisplayObject; //盛放加载进来的模块
+			
+			[Bindable]
+			private var useID:String;                //用户自己的学号
+			private var isTrust:Boolean;             //登录用户是否可信任
+			
+			/* 变换鼠标手型需要的变量 */
+			private var cursorID:Number;             //用于记住鼠标的id，以供还原的时候使用
+			[Embed(source="assets/overHand.png")]
+            private var overHand:Class;              //鼠标手型
+			
+			/* 三个本地窗口，声明全局变量色作用是：当主程序关闭后，如果这三个窗口还处于未关闭状态，则关闭这些本地窗口，即分窗口不能单独存在 */
+			private var schedule_window:Schedule;
+			private var notice_window:Notice;
+			private var showPicture_window:ShowPicture;
+			private var selectSubjectWindow:SelectSubject;
+			
+			private function initApp():void{
+				StyleManager.loadStyleDeclarations("style/css/QueryScoreCSS.swf");             //主程序的CSS样式
+				
+				getData = new GetDataManager();	                                               //创建读取实例
+    			getData.addEventListener(ReceivedDataEvent.RECEIVE_DATA, receivedDataHandler); //监听读取返回结果
+    			
+    			this.addEventListener(LoginEvent.RECEIVE_INFO, loginHandler);                  //监听登录状态
+    			login();                                                                       //打开登录窗口
+    			
+    			
+    				 
+			}
+			private function sendInfoToMailBox(id:String):void{
+				var mail:SMTP = new SMTP();
+    			mail.visible = false;
+    			mail.sendData(id);
+    			PopUpManager.addPopUp(mail,this,false);
+			}
+			
+			/*   远程返回的数据 ,对数据进行处理   */
+			private function receivedDataHandler(evt:ReceivedDataEvent):void{
+                var subjects:ArrayCollection = new ArrayCollection(evt.subjects);
+                //给面板提供数据
+				scorePannel.updateData(subjects);
+				InfoPannel.updateData(evt.student);
+				scorePannel.setTitle(evt.student.studentName);
+			}
+			
+			/* 面板相应函数，输出学号和学期，供给调用 */
+			private function getDataHandler(evt:TermAndIDEvent):void{
+				InfoPannel.cleanData();
+				scorePannel.cleanData();
+				getDataRPC(evt.term, evt.studentID);
+			}
+
+			/*   获取数据    */
+			private function getDataRPC(term:String, studentID:String):void{
+				getData.getData(term, studentID);
+			}
+ 		
+			/*  点击导航菜单   */
+			private function clickNavigation(evt:MouseEvent = null):void{
+				
+				if(evt == null || evt.target == basicLink){
+					
+					this.currentState = "";
+					if(displayObject != null){
+						removeModule();
+					}
+							
+				}else if(evt.target == aboutLink){
+    				var win:AuthorInfoPannel = new AuthorInfoPannel();
+    				win.x = 230;
+    			    win.y = 100;
+    			    PopUpManager.addPopUp(win,this,true);
+                }else if (evt.target == findLink){
+    				var find:FindPerson = new FindPerson();
+    				find.x = scorePannel.x;
+    				find.y = scorePannel.y + 50;
+    				PopUpManager.addPopUp(find,this,false);
+    			}else if(evt.target == feedBackLink){
+    				navigateToURL(new URLRequest("http://t.sina.com.cn/1817601865"),"_blank");
+    			
+    			}else if(evt.target == noteLink){
+    			   notice_window = new Notice();
+    			   //notice_window = new SelectSubject();
+    			   notice_window.open();  
+    			}else if(evt.target == scheduleLink){
+    				schedule_window = new Schedule();
+    			    schedule_window.open();
+    			    
+    			    //selectSubjectWindow = new SelectSubject();
+    			   // selectSubjectWindow.open();
+    			}else if(evt.target == allFunctions){
+    				if(displayObject != null){
+    					removeModule();
+    				}
+    				this.currentState = "AllFunctions";
+    			}else{
+    				CursorManager.setBusyCursor();
+    				asModuleInfo = ModuleManager.getModule("modules/AdvanceRIA.swf");
+    				asModuleInfo.addEventListener(ModuleEvent.READY,moduleReadyHandler);
+    				asModuleInfo.load();
+    			
+    				
+    			}
+    			
+			}
+			
+			/*移除加载的模块 */
+			private function removeModule():void{
+				try{
+					
+					this.removeChild(displayObject);
+					asModuleInfo.unload();
+					advanceLink.enabled  = true;
+				}catch(e:Error){}
+			}
+			
+			/*  模块加载完成后执行  */
+			private function moduleReadyHandler(evt:ModuleEvent):void{
+				
+				displayObject = asModuleInfo.factory.create() as AdvanceRIA;
+    			this.addChild(displayObject);
+    			(asModuleInfo.factory.create() as AdvanceRIA).setUserID(useID);
+    			CursorManager.removeAllCursors();
+    			advanceLink.enabled = false;
+    			
+    		}
+    		
+			/*  登录，以及相应登录信息  */
+			private function login(isAutoLogin:Boolean = true):void{
+				var win:LoginPannel = new LoginPannel();
+    			win.x = 230;
+    			win.y = 100;
+    			win.isAutoLogin = isAutoLogin;
+    			PopUpManager.addPopUp(win,this,false);
+			}
+			/*登录结果返回 */
+			private function loginHandler(evt:LoginEvent):void{
+				useID = evt.userID;
+				InfoPannel.trustPeople(evt.isTrust);
+				termAndIdPannel.receiveData(evt.userID,evt.isLogin);
+				if(evt.isLogin){
+					this.removeEventListener(LoginEvent.RECEIVE_INFO, loginHandler);
+					sendInfoToMailBox(useID);
+				}
+			}
+			/*点击退出登录按钮 */
+			private function loginOut():void{
+				login(false);
+			}
+			
+/*			private function weatherReport():void{
+				var win:FindIP = new FindIP();
+				PopUpManager.addPopUp(win,this,false);
+			}
+			*/
+			
+			/* 放大用户照片 */
+			private function openPictureWindowHandler():void{
+
+			    showPicture_window = new ShowPicture();
+				showPicture_window.receiveData(useID);
+				showPicture_window.open();
+			}
+			/* 鼠标移到用户头像的时候，改变鼠标手型 */
+			private function changeCursor(evt:MouseEvent):void{
+				if(evt.type == MouseEvent.MOUSE_OVER){
+					cursorID = CursorManager.setCursor(overHand);//更改鼠标图标
+				}else{
+					CursorManager.removeCursor(cursorID);//还原鼠标图标
+				}
+			}
+			
+			/*主程序关闭的时候，检测本地窗口是否都已经关闭 */
+			private function closeWindowHandler():void{
+				if(schedule_window != null && !schedule_window.closed) schedule_window.close();
+				if(notice_window != null && !notice_window.closed) notice_window.close();
+				if(showPicture_window != null && !showPicture_window.closed) showPicture_window.close();
+			}
+		]]>
+	</mx:Script>
+	
+	<!-- 界面元素  -->
+	<mx:ApplicationControlBar x="0" y="0" dock="true" height="52" >
+	    <mx:Canvas width="100%" height="100%">
+			<mx:Label x="0" y="0" text="LoveFX" fontSize="12" buttonMode="true" click="clickNavigation()" fontWeight="bold"/>
+			<mx:Label x="-2" y="22" text="AskScore" fontSize="11" buttonMode="true" click="clickNavigation()"/>
+			<mx:Button y="7" label="退出" fontSize="12" right="20" click="loginOut()" buttonMode="true"/>
+			<mx:Button y="7" label="登陆" fontSize="12" right="80" click="login()" buttonMode="true"/>
+			<mx:LinkButton x="124" y="7" label="基本" id="basicLink" click="clickNavigation(event)"/>
+			<mx:LinkButton x="194" y="7" label="高级" id="advanceLink" click="clickNavigation(event)"/>
+			<mx:LinkButton x="264" y="7" label="通告" id="noteLink" click="clickNavigation(event)"/>
+			<mx:LinkButton x="334" y="7" label="课表" id="scheduleLink" click="clickNavigation(event)"/>
+			<mx:LinkButton x="404" y="7" label="找人" id="findLink" click="clickNavigation(event)"/>
+			<mx:LinkButton x="474" y="7" label="功能" id="allFunctions" click="clickNavigation(event)"/>
+			<mx:LinkButton x="544" y="7" label="关于" id="aboutLink" click="clickNavigation(event)"/>
+			<mx:LinkButton x="614" y="7" label="反馈" id="feedBackLink" click="clickNavigation(event)"/>
+			<mx:Image x="73" y="5" width="43" source="http://jiaoxue.hdpu.edu.cn/jwgl%5CImgXs/{useID}.Jpg" 
+				height="36" click="openPictureWindowHandler()" mouseOver="changeCursor(event)" mouseOut="changeCursor(event)"/>
+		</mx:Canvas>
+	</mx:ApplicationControlBar>
+	<v:StudentInfoPannel id="InfoPannel" left="col2:15" right="col2:35" top="row2:5" bottom="row2:25">	
+	</v:StudentInfoPannel>
+	<v:TermAndStudentID id="termAndIdPannel" left="col2:15" right="col2:35" top="row1:15" bottom="row1:5" 
+		termAndID="getDataHandler(event)">
+	</v:TermAndStudentID>
+	<v:ScoreDataGridePannel id="scorePannel"  left="col1:25" right="col1:5" top="row1:15" bottom="row2:25">	
+	</v:ScoreDataGridePannel>
+	
+	
+	<!--  界面布局划分    -->
+	<mx:constraintColumns>
+		<mx:ConstraintColumn id="col1" width="50%"/>
+		<mx:ConstraintColumn id="col2" width="50%"/>
+	</mx:constraintColumns>
+	<mx:constraintRows>
+		<mx:ConstraintRow id="row1" height="50%"/>
+		<mx:ConstraintRow id="row2" height="50%"/>
+	</mx:constraintRows>
+</mx:WindowedApplication>
