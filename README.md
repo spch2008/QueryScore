@@ -9,8 +9,10 @@ QueryScore
 6. 课程表本地化，随时随地查看课程信息
 
 
-1. 登录界面如下：
-   ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/login.jpg)
+1. 登录界面如下：    
+
+   ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/login.jpg)    
+
    用户通过学号与教务系统密码，进行登录    
 
 
@@ -25,14 +27,13 @@ QueryScore
    ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/cal%20and%20filter.jpg)     
    
 
-   同时，可以根据喜欢，进行课程过滤，仅显示感兴趣课程，并统计平均值。     
+   同时，可以根据喜欢，进行课程过滤，仅显示感兴趣课程，并统计平均值.    
+   
+   
    
 
-       
-   
-   
+3. 高级功能    
 
-3. 高级功能     
    ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/统计排名.jpg)      
    根据用户输入学号的范围，自动查询并统计成绩，然后按照从高到低进行排序
 
@@ -41,7 +42,8 @@ QueryScore
 
 
 
-4. 小功能
+4. 小功能    
+
    ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/find%20people.jpg)     
    找人功能，根据用户输入的学号，查询学籍信息
    
