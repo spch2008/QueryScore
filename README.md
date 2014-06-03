@@ -15,15 +15,15 @@ QueryScore
 
 
 2. 主界面如下：
-   ![image](https://github.com/spch2008/QueryScore/blob/master/readme/main.jpg)
+   ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/main.jpg)
    
    用户可以根据学号查询成绩，通过左右递增递减学号，查询，同时，下方显示用户学籍信息
 
-   ![image](https://github.com/spch2008/QueryScore/blob/master/readme/main.jpg)
+   ![Image text](http://raw.github.com/spch2008/QueryScore/master/readme/main.jpg)
    同时，可以根据喜欢，进行课程过滤，仅显示感兴趣课程，并统计平均值。   
 
 
 3. 高级功能 
-   ![image](https://github.com/spch2008/QueryScore/blob/master/readme/main.jpg)
+   ![Image text](https://raw.github.com/spch2008/QueryScore/master/readme/main.jpg)
    
 
